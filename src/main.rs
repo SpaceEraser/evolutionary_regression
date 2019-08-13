@@ -1,6 +1,7 @@
 #![feature(box_patterns)]
 #![feature(bind_by_move_pattern_guards)]
 #![feature(clamp)]
+use rayon;
 
 mod evolve;
 // use evolve::float;
@@ -17,6 +18,10 @@ fn main() {
     // let mut e = evolve::Evolve::from_pair(data);
     // e.step(50_000);
     // println!("the function is approx {}", e.best_individual());
+    
+    // increase stack size
+    rayon::ThreadPoolBuilder::new().stack_size(4*1024*1024*1024).build_global().unwrap();
+
     let mut m = MetaEvolve::new();
     m.step(100);
     dbg!(m.best_individual());

@@ -26,7 +26,7 @@ pub struct EvolutionParams {
     /// valid range: (1, inf)
     pub mutate_replace_rate: float,
 
-    /// valid range: (1, inf)
+    /// valid range: (0, 1]
     pub mutate_random_expression_prob: float,
 
     /// valid range: (0, 1]
@@ -49,7 +49,7 @@ impl EvolutionParams {
             && self.repeated_mutation_rate > 1.0
             && self.random_expression_insert_rate > 1.0
             && self.mutate_replace_rate > 1.0
-            && self.mutate_random_expression_prob > 1.0
+            && (Excluded(0.0), Included(1.0)).contains(&self.mutate_random_expression_prob)
             && (Excluded(0.0), Included(1.0)).contains(&self.const_mutation_prob)
             && (1.0..).contains(&self.const_jitter_factor)
             && (0.0..=1.0).contains(&self.binary_switch_prob)
@@ -66,7 +66,7 @@ impl EvolutionParams {
             repeated_mutation_rate: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float) + 1.0,
             random_expression_insert_rate: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float) + 1.0,
             mutate_replace_rate: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float) + 1.0,
-            mutate_random_expression_prob: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float) + 1.0,
+            mutate_random_expression_prob: rng.sample(OpenClosed01),
             const_mutation_prob: rng.sample(OpenClosed01),
             const_jitter_factor: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float) + 1.0,
             binary_switch_prob: rng.sample(OpenClosed01),
@@ -107,7 +107,7 @@ impl EvolutionParams {
             },
             mutate_random_expression_prob: {
                 let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.mutate_random_expression_prob + o).max(1.0001)
+                (self.mutate_random_expression_prob + o).clamp(0.0001, 1.0)
             },
             const_mutation_prob: {
                 let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
@@ -119,7 +119,7 @@ impl EvolutionParams {
             },
             binary_switch_prob: {
                 let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.const_jitter_factor + o).clamp(0.0, 1.0)
+                (self.binary_switch_prob + o).clamp(0.0, 1.0)
             },
         }
     }

@@ -15,7 +15,10 @@ pub fn random_expression(depth: i32, params: &EvolutionParams) -> Rc<dyn ExpNode
         } else {
             Rc::new(Constant(
                 Normal::new(params.new_const_mean as _, params.new_const_std as _)
-                    .unwrap()
+                    .expect(&format!(
+                        "invalid: new_const_mean {} new_const_std {}",
+                        params.new_const_mean, params.new_const_std
+                    ))
                     .sample(&mut rng) as float,
             ))
         }
@@ -55,7 +58,10 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast {
 
         if rng.gen::<float>() < params.mutate_replace_rate.powf(-(self.size()) as float) {
             let depth = Geometric::new(params.mutate_random_expression_prob as _)
-                .unwrap()
+                .expect(&format!(
+                    "invalid: mutate_random_expression_prob {}",
+                    params.mutate_random_expression_prob
+                ))
                 .sample(&mut rng)
                 - 1.0;
             random_expression(depth as _, params)
@@ -102,7 +108,10 @@ impl ExpNode for Constant {
         if rng.gen::<float>() < params.const_mutation_prob {
             let c = self.0.abs().max(0.0001);
             let r = Normal::new(0.0, (c / params.const_jitter_factor).into())
-                .unwrap()
+                .expect(&format!(
+                    "invalid: c/const_jitter_factor {}",
+                    c / params.const_jitter_factor
+                ))
                 .sample(&mut rng) as float;
             Rc::new(Constant(self.0 + r))
         } else {
