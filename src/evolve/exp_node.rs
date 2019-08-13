@@ -10,13 +10,14 @@ pub fn random_expression(depth: i32, params: &EvolutionParams) -> Rc<dyn ExpNode
     let mut rng = rand::thread_rng();
 
     if depth == 0 {
-        match rng.gen::<bool>() {
-            true => Rc::new(Variable),
-            false => Rc::new(Constant(
+        if rng.gen::<bool>() {
+            Rc::new(Variable)
+        } else {
+            Rc::new(Constant(
                 Normal::new(params.new_const_mean as _, params.new_const_std as _)
                     .unwrap()
                     .sample(&mut rng) as float,
-            )),
+            ))
         }
     } else {
         match rng.gen_range::<i32, _, _>(0, 5) {
@@ -99,9 +100,11 @@ impl ExpNode for Constant {
         let mut rng = rand::thread_rng();
 
         if rng.gen::<float>() < params.const_mutation_prob {
-            let c = self.0.max(0.001);
-            let r = Normal::new(0.0, (c.abs() / 3.0).into()).unwrap().sample(&mut rng) as float;
-            Rc::new(Constant(c + r))
+            let c = self.0.abs().max(0.0001);
+            let r = Normal::new(0.0, (c / params.const_jitter_factor).into())
+                .unwrap()
+                .sample(&mut rng) as float;
+            Rc::new(Constant(self.0 + r))
         } else {
             Rc::new(Constant(self.0))
         }
@@ -296,7 +299,7 @@ impl ExpNode for Exp {
         let b = self.1.eval(x);
         let r = a.powf(b);
 
-        if r.is_nan() {
+        if !r.is_finite() {
             0.0
         } else {
             r
@@ -319,7 +322,7 @@ impl ExpNode for Exp {
             (Some(Constant(c1)), Some(Constant(c2))) => {
                 let r = c1.powf(*c2);
 
-                Rc::new(Constant(if r.is_nan() { 0.0 } else { r }))
+                Rc::new(Constant(if !r.is_finite() { 0.0 } else { r }))
             }
             (None, Some(Constant(c))) if relative_eq!(*c, 1.0) => a,
             (None, Some(Constant(c))) if relative_eq!(*c, 0.0) => Rc::new(Constant(1.0)),
@@ -355,7 +358,7 @@ impl ExpNode for Log {
         let b = self.1.eval(x);
         let r = a.log(b);
 
-        if r.is_nan() {
+        if !r.is_finite() {
             0.0
         } else {
             r
@@ -378,7 +381,7 @@ impl ExpNode for Log {
             (Some(Constant(c1)), Some(Constant(c2))) => {
                 let r = c1.log(*c2);
 
-                Rc::new(Constant(if r.is_nan() { 0.0 } else { r }))
+                Rc::new(Constant(if !r.is_finite() { 0.0 } else { r }))
             }
             _ => Rc::new(Log(a, b)),
         }

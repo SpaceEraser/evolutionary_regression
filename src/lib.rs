@@ -1,3 +1,5 @@
+#![feature(clamp)]
+
 pub mod evolve;
 pub use evolve::Evolve;
 
