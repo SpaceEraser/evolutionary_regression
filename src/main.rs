@@ -19,4 +19,5 @@ fn main() {
     // println!("the function is approx {}", e.best_individual());
     let mut m = MetaEvolve::new();
     m.step(100);
+    dbg!(m.best_individual());
 }

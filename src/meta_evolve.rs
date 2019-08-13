@@ -107,6 +107,8 @@ impl MetaEvolve {
                 }
             }
 
+            println!("Sorting generation {}", _c + 1);
+
             new_pop.sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
             self.pop = new_pop;
 
@@ -118,5 +120,9 @@ impl MetaEvolve {
 
     pub fn best_fitness(&self) -> float {
         self.pop[0].fitness()
+    }
+
+    pub fn best_individual(&self) -> &EvolutionParams {
+        &self.pop[0].params
     }
 }
