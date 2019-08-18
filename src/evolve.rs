@@ -45,6 +45,7 @@ impl Evolve {
             new_pop.push(self.pop[0].clone());
 
             // add mutations to new population
+            'newloop:
             while new_pop.len() < self.pop.len() {
                 for i in 0..self.pop.len() {
                     if rng.gen::<float>() < (self.pop.len() - i) as float / self.pop.len() as float
@@ -55,6 +56,7 @@ impl Evolve {
                                     < self.params.repeated_mutation_rate.powf(-(i as float))
                             {
                                 new_pop.push(self.pop[i].mutate(&self.params));
+                                if new_pop.len() == self.pop.len() { break 'newloop; }
                             } else {
                                 break;
                             }
@@ -69,6 +71,7 @@ impl Evolve {
                             .unwrap()
                             .sample(&mut rng);
                         new_pop.push(random_expression(size as _, &self.params));
+                        if new_pop.len() == self.pop.len() { break 'newloop; }
                     }
                 }
             }
@@ -85,7 +88,7 @@ impl Evolve {
             }
 
             // set new population as current population
-            self.pop = new_pop[0..self.pop.len()].to_vec();
+            self.pop = new_pop;
             self.total_iterations += 1;
 
             // if (_c + 1) % 1000 == 0 {
