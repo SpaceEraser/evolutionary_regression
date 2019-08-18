@@ -1,7 +1,7 @@
 #![feature(clamp)]
 
 pub mod evolve;
-pub use evolve::Evolve;
+pub mod meta_evolve;
 
 use wasm_bindgen::prelude::*;
 use web_sys::console;

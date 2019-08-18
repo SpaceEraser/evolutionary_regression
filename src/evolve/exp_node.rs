@@ -6,10 +6,12 @@ use rand::prelude::*;
 use statrs::distribution::{Geometric, Normal};
 use std::rc::Rc;
 
-pub fn random_expression(depth: i32, params: &EvolutionParams) -> Rc<dyn ExpNode> {
+pub fn random_expression(size: i32, params: &EvolutionParams) -> Rc<dyn ExpNode> {
+    let size = size.min(100);
+
     let mut rng = rand::thread_rng();
 
-    if depth == 0 {
+    if size == 1 {
         if rng.gen::<bool>() {
             Rc::new(Variable)
         } else {
@@ -22,27 +24,30 @@ pub fn random_expression(depth: i32, params: &EvolutionParams) -> Rc<dyn ExpNode
                     .sample(&mut rng) as float,
             ))
         }
-    } else {
-        match rng.gen_range::<i32, _, _>(0, 5) {
+    } else if size > 2 {
+        match rng.gen_range::<i32, _, _>(0, 4) {
             0 => Rc::new(Add::new(
-                random_expression(depth - 1, params),
-                random_expression(depth - 1, params),
+                random_expression(size - 2, params),
+                random_expression(size - 2, params),
             )),
             1 => Rc::new(Mul::new(
-                random_expression(depth - 1, params),
-                random_expression(depth - 1, params),
+                random_expression(size - 2, params),
+                random_expression(size - 2, params),
             )),
-            2 => Rc::new(Sin::new(random_expression(depth - 1, params))),
-            3 => Rc::new(Exp::new(
-                random_expression(depth - 1, params),
-                random_expression(depth - 1, params),
+            2 => Rc::new(Exp::new(
+                random_expression(size - 2, params),
+                random_expression(size - 2, params),
             )),
-            4 => Rc::new(Log::new(
-                random_expression(depth - 1, params),
-                random_expression(depth - 1, params),
+            3 => Rc::new(Log::new(
+                random_expression(size - 2, params),
+                random_expression(size - 2, params),
             )),
-            _ => panic!("This should never happen."),
+            _ => panic!("this should never happen"),
         }
+    } else if size > 1 {
+        Rc::new(Sin::new(random_expression(size - 1, params)))
+    } else {
+        panic!("invalid size for random_expression: {:?}", size);
     }
 }
 
@@ -56,22 +61,24 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast {
     fn mutate(&self, params: &EvolutionParams) -> Rc<dyn ExpNode> {
         let mut rng = rand::thread_rng();
 
-        if rng.gen::<float>() < params.mutate_replace_rate.powf(-(self.size()) as float) {
-            let depth = Geometric::new(params.mutate_random_expression_prob as _)
-                .expect(&format!(
-                    "invalid: mutate_random_expression_prob {}",
-                    params.mutate_random_expression_prob
-                ))
-                .sample(&mut rng)
-                - 1.0;
-            random_expression(depth as _, params)
+        let size = self.size();
+
+        if rng.gen::<float>() < params.mutate_replace_rate.powf(-size as float) {
+            let size = Geometric::new(1.0 / ((size + 1) as f64))
+                .unwrap()
+                .sample(&mut rng);
+            random_expression(size as _, params)
         } else {
             self.mutate_node(params)
         }
     }
 
     fn fitness(&self, data: &[[float; 2]]) -> float {
-        let accuracy: float = data.iter().map(|&[x, y]| self.eval(x) - y).map(|y| y.abs()).sum();
+        let accuracy: float = data
+            .iter()
+            .map(|&[x, y]| self.eval(x) - y)
+            .map(|y| y.abs())
+            .sum();
 
         accuracy + (self.size() as float)
     }

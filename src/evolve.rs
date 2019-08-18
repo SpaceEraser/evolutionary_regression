@@ -33,6 +33,12 @@ impl Evolve {
         let mut rng = rand::thread_rng();
 
         for _c in 0..iterations {
+            // for p in self.pop.iter() {
+            //     let size = p.size();
+            //     if size > 50 {
+            //         println!("Huge size detected: {}", size);
+            //     }
+            // }
             let mut new_pop = Vec::with_capacity(self.pop.len());
 
             // add the best of the last population to new population
@@ -41,9 +47,13 @@ impl Evolve {
             // add mutations to new population
             while new_pop.len() < self.pop.len() {
                 for i in 0..self.pop.len() {
-                    if rng.gen::<float>() < (self.pop.len() - i) as float / self.pop.len() as float {
+                    if rng.gen::<float>() < (self.pop.len() - i) as float / self.pop.len() as float
+                    {
                         for j in 0..self.pop.len() {
-                            if j == 0 || rng.gen::<float>() < self.params.repeated_mutation_rate.powf(-(i as float)) {
+                            if j == 0
+                                || rng.gen::<float>()
+                                    < self.params.repeated_mutation_rate.powf(-(i as float))
+                            {
                                 new_pop.push(self.pop[i].mutate(&self.params));
                             } else {
                                 break;
@@ -52,12 +62,13 @@ impl Evolve {
                     }
                 }
                 for i in 0..self.pop.len() {
-                    if rng.gen::<float>() < (self.params.random_expression_insert_rate as float).powf(-(i as float)) {
-                        let depth = Geometric::new(self.params.new_random_expression_prob as _)
+                    if rng.gen::<float>()
+                        < (self.params.random_expression_insert_rate as float).powf(-(i as float))
+                    {
+                        let size = Geometric::new(self.params.new_random_expression_prob as _)
                             .unwrap()
-                            .sample(&mut rng)
-                            - 1.0;
-                        new_pop.push(random_expression(depth as _, &self.params));
+                            .sample(&mut rng);
+                        new_pop.push(random_expression(size as _, &self.params));
                     }
                 }
             }
@@ -112,11 +123,10 @@ impl Evolve {
         let mut rng = rand::thread_rng();
         let mut pop = vec![
             {
-                let depth = Geometric::new(params.new_random_expression_prob as _)
+                let size = Geometric::new(params.new_random_expression_prob as _)
                     .unwrap()
-                    .sample(&mut rng)
-                    - 1.0;
-                random_expression(depth as _, &params).simplify()
+                    .sample(&mut rng);
+                random_expression(size as _, &params).simplify()
             };
             params.population_num.round() as _
         ];

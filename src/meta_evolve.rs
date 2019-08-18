@@ -2,7 +2,6 @@ use crate::evolve::{float, EvolutionParams, Evolve};
 use ordered_float::OrderedFloat;
 use rand::prelude::*;
 use rayon::prelude::*;
-use statrs::distribution::{Exponential, Normal};
 use std::cell::RefCell;
 
 static FUNCTIONS: &'static [fn(float) -> float; 3] = &[
@@ -34,7 +33,9 @@ impl MetaEntity {
 
     pub fn crossover(entities: &[&Self]) -> Self {
         MetaEntity {
-            params: EvolutionParams::crossover(&entities.iter().map(|me| &me.params).collect::<Vec<_>>()),
+            params: EvolutionParams::crossover(
+                &entities.iter().map(|me| &me.params).collect::<Vec<_>>(),
+            ),
             fitness: RefCell::new(None),
         }
     }
@@ -112,7 +113,11 @@ impl MetaEvolve {
             new_pop.sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
             self.pop = new_pop;
 
-            println!("Sorted generation {}! Best fitness: {}", _c + 1, self.best_fitness());
+            println!(
+                "Sorted generation {}! Best fitness: {}",
+                _c + 1,
+                self.best_fitness()
+            );
 
             self.total_iterations += 1;
         }

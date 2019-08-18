@@ -27,9 +27,6 @@ pub struct EvolutionParams {
     pub mutate_replace_rate: float,
 
     /// valid range: (0, 1]
-    pub mutate_random_expression_prob: float,
-
-    /// valid range: (0, 1]
     pub const_mutation_prob: float,
 
     /// valid range: [1, inf)
@@ -49,7 +46,6 @@ impl EvolutionParams {
             && self.repeated_mutation_rate > 1.0
             && self.random_expression_insert_rate > 1.0
             && self.mutate_replace_rate > 1.0
-            && (Excluded(0.0), Included(1.0)).contains(&self.mutate_random_expression_prob)
             && (Excluded(0.0), Included(1.0)).contains(&self.const_mutation_prob)
             && (1.0..).contains(&self.const_jitter_factor)
             && (0.0..=1.0).contains(&self.binary_switch_prob)
@@ -59,16 +55,20 @@ impl EvolutionParams {
         let mut rng = rand::thread_rng();
 
         Self {
-            population_num: Geometric::new(0.99 as _).unwrap().sample(&mut rng) as _,
+            population_num: Geometric::new(0.1 as _).unwrap().sample(&mut rng) as _,
             new_const_mean: Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as _,
             new_const_std: Exponential::new(0.9 as _).unwrap().sample(&mut rng) as _,
             new_random_expression_prob: rng.sample(OpenClosed01),
-            repeated_mutation_rate: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float) + 1.0,
-            random_expression_insert_rate: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float) + 1.0,
-            mutate_replace_rate: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float) + 1.0,
-            mutate_random_expression_prob: rng.sample(OpenClosed01),
+            repeated_mutation_rate: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float)
+                + 1.0,
+            random_expression_insert_rate: (Exponential::new(0.5 as _).unwrap().sample(&mut rng)
+                as float)
+                + 1.0,
+            mutate_replace_rate: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float)
+                + 1.0,
             const_mutation_prob: rng.sample(OpenClosed01),
-            const_jitter_factor: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float) + 1.0,
+            const_jitter_factor: (Exponential::new(0.5 as _).unwrap().sample(&mut rng) as float)
+                + 1.0,
             binary_switch_prob: rng.sample(OpenClosed01),
         }
     }
@@ -78,7 +78,9 @@ impl EvolutionParams {
 
         Self {
             population_num: {
-                let o = Normal::new(0.0, self.population_num as _).unwrap().sample(&mut rng) as float;
+                let o = Normal::new(0.0, self.population_num as _)
+                    .unwrap()
+                    .sample(&mut rng) as float;
                 (self.population_num + o).max(1.0)
             },
             new_const_mean: {
@@ -104,10 +106,6 @@ impl EvolutionParams {
             mutate_replace_rate: {
                 let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
                 (self.mutate_replace_rate + o).max(1.0001)
-            },
-            mutate_random_expression_prob: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.mutate_random_expression_prob + o).clamp(0.0001, 1.0)
             },
             const_mutation_prob: {
                 let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
@@ -141,14 +139,13 @@ impl EvolutionParams {
             repeated_mutation_rate: a[4],
             random_expression_insert_rate: a[5],
             mutate_replace_rate: a[6],
-            mutate_random_expression_prob: a[7],
-            const_mutation_prob: a[8],
-            const_jitter_factor: a[9],
-            binary_switch_prob: a[10],
+            const_mutation_prob: a[7],
+            const_jitter_factor: a[8],
+            binary_switch_prob: a[9],
         }
     }
 
-    pub fn as_array(&self) -> Box<[float; 11]> {
+    pub fn as_array(&self) -> Box<[float; 10]> {
         Box::new([
             self.population_num,
             self.new_const_mean,
@@ -157,7 +154,6 @@ impl EvolutionParams {
             self.repeated_mutation_rate,
             self.random_expression_insert_rate,
             self.mutate_replace_rate,
-            self.mutate_random_expression_prob,
             self.const_mutation_prob,
             self.const_jitter_factor,
             self.binary_switch_prob,
@@ -165,7 +161,7 @@ impl EvolutionParams {
     }
 
     pub fn num_params() -> usize {
-        11
+        10
     }
 }
 
@@ -175,11 +171,10 @@ impl Default for EvolutionParams {
             population_num: 50.0,
             new_const_mean: 0.0,
             new_const_std: 2.0,
-            new_random_expression_prob: 0.95,
+            new_random_expression_prob: 0.3,
             repeated_mutation_rate: 1.5,
             random_expression_insert_rate: 3.0,
             mutate_replace_rate: 3.0,
-            mutate_random_expression_prob: 0.75,
             const_mutation_prob: 0.01,
             const_jitter_factor: 3.0,
             binary_switch_prob: 0.01,
