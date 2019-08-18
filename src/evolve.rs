@@ -6,7 +6,6 @@ use exp_node::*;
 use ordered_float::OrderedFloat;
 use rand::prelude::*;
 use statrs::distribution::Geometric;
-use std::rc::Rc;
 use wasm_bindgen::prelude::*;
 
 #[allow(non_camel_case_types)]
@@ -15,7 +14,7 @@ pub type float = f32;
 #[wasm_bindgen]
 #[derive(Debug)]
 pub struct Evolve {
-    pop: Vec<Rc<dyn ExpNode>>,
+    pop: Vec<Box<dyn ExpNode>>,
     data: Vec<[float; 2]>,
     params: EvolutionParams,
     total_iterations: usize,
@@ -45,8 +44,7 @@ impl Evolve {
             new_pop.push(self.pop[0].clone());
 
             // add mutations to new population
-            'newloop:
-            while new_pop.len() < self.pop.len() {
+            'newloop: while new_pop.len() < self.pop.len() {
                 for i in 0..self.pop.len() {
                     if rng.gen::<float>() < (self.pop.len() - i) as float / self.pop.len() as float
                     {
@@ -56,7 +54,9 @@ impl Evolve {
                                     < self.params.repeated_mutation_rate.powf(-(i as float))
                             {
                                 new_pop.push(self.pop[i].mutate(&self.params));
-                                if new_pop.len() == self.pop.len() { break 'newloop; }
+                                if new_pop.len() == self.pop.len() {
+                                    break 'newloop;
+                                }
                             } else {
                                 break;
                             }
@@ -71,7 +71,9 @@ impl Evolve {
                             .unwrap()
                             .sample(&mut rng);
                         new_pop.push(random_expression(size as _, &self.params));
-                        if new_pop.len() == self.pop.len() { break 'newloop; }
+                        if new_pop.len() == self.pop.len() {
+                            break 'newloop;
+                        }
                     }
                 }
             }
@@ -121,6 +123,10 @@ impl Evolve {
 }
 
 impl Evolve {
+    pub fn from_pair(data: Vec<[float; 2]>) -> Self {
+        Self::new(data, None)
+    }
+
     pub fn new(data: Vec<[float; 2]>, params: Option<EvolutionParams>) -> Self {
         let params = params.unwrap_or_else(|| EvolutionParams::default());
         let mut rng = rand::thread_rng();
@@ -144,7 +150,7 @@ impl Evolve {
         }
     }
 
-    pub fn best_individual(&self) -> Rc<dyn ExpNode> {
+    pub fn best_individual(&self) -> Box<dyn ExpNode> {
         self.pop[0].clone()
     }
 }

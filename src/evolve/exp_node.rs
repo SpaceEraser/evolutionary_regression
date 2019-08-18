@@ -4,18 +4,17 @@ use approx::relative_eq;
 use downcast_rs::{impl_downcast, Downcast};
 use rand::prelude::*;
 use statrs::distribution::{Geometric, Normal};
-use std::rc::Rc;
 
-pub fn random_expression(size: i32, params: &EvolutionParams) -> Rc<dyn ExpNode> {
+pub fn random_expression(size: i32, params: &EvolutionParams) -> Box<dyn ExpNode> {
     let size = size.min(100);
 
     let mut rng = rand::thread_rng();
 
     if size == 1 {
         if rng.gen::<bool>() {
-            Rc::new(Variable)
+            Box::new(Variable)
         } else {
-            Rc::new(Constant(
+            Box::new(Constant(
                 Normal::new(params.new_const_mean as _, params.new_const_std as _)
                     .expect(&format!(
                         "invalid: new_const_mean {} new_const_std {}",
@@ -26,39 +25,39 @@ pub fn random_expression(size: i32, params: &EvolutionParams) -> Rc<dyn ExpNode>
         }
     } else if size > 2 {
         match rng.gen_range::<i32, _, _>(0, 4) {
-            0 => Rc::new(Add::new(
+            0 => Box::new(Add::new(
                 random_expression(size - 2, params),
                 random_expression(size - 2, params),
             )),
-            1 => Rc::new(Mul::new(
+            1 => Box::new(Mul::new(
                 random_expression(size - 2, params),
                 random_expression(size - 2, params),
             )),
-            2 => Rc::new(Exp::new(
+            2 => Box::new(Exp::new(
                 random_expression(size - 2, params),
                 random_expression(size - 2, params),
             )),
-            3 => Rc::new(Log::new(
+            3 => Box::new(Log::new(
                 random_expression(size - 2, params),
                 random_expression(size - 2, params),
             )),
             _ => panic!("this should never happen"),
         }
     } else if size > 1 {
-        Rc::new(Sin::new(random_expression(size - 1, params)))
+        Box::new(Sin::new(random_expression(size - 1, params)))
     } else {
         panic!("invalid size for random_expression: {:?}", size);
     }
 }
 
-pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast {
-    fn children(&self) -> Vec<Rc<dyn ExpNode>>;
+pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast + objekt::Clone {
+    fn children(&self) -> Vec<Box<dyn ExpNode>>;
 
     fn eval(&self, x: float) -> float;
 
-    fn mutate_node(&self, params: &EvolutionParams) -> Rc<dyn ExpNode>;
+    fn mutate_node(&self, params: &EvolutionParams) -> Box<dyn ExpNode>;
 
-    fn mutate(&self, params: &EvolutionParams) -> Rc<dyn ExpNode> {
+    fn mutate(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
         let mut rng = rand::thread_rng();
 
         let size = self.size();
@@ -83,7 +82,7 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast {
         accuracy + (self.size() as float)
     }
 
-    fn simplify(&self) -> Rc<dyn ExpNode>;
+    fn simplify(&self) -> Box<dyn ExpNode>;
 
     fn depth(&self) -> i32 {
         self.children().iter().map(|c| c.depth()).max().unwrap_or(0) + 1
@@ -94,6 +93,7 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast {
     }
 }
 impl_downcast!(ExpNode);
+objekt::clone_trait_object!(ExpNode);
 
 //---------------------------------------------------------------
 
@@ -101,7 +101,7 @@ impl_downcast!(ExpNode);
 pub struct Constant(float);
 
 impl ExpNode for Constant {
-    fn children(&self) -> Vec<Rc<dyn ExpNode>> {
+    fn children(&self) -> Vec<Box<dyn ExpNode>> {
         vec![]
     }
 
@@ -109,7 +109,7 @@ impl ExpNode for Constant {
         self.0
     }
 
-    fn mutate_node(&self, params: &EvolutionParams) -> Rc<dyn ExpNode> {
+    fn mutate_node(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
         let mut rng = rand::thread_rng();
 
         if rng.gen::<float>() < params.const_mutation_prob {
@@ -120,14 +120,14 @@ impl ExpNode for Constant {
                     c / params.const_jitter_factor
                 ))
                 .sample(&mut rng) as float;
-            Rc::new(Constant(self.0 + r))
+            Box::new(Constant(self.0 + r))
         } else {
-            Rc::new(Constant(self.0))
+            Box::new(Constant(self.0))
         }
     }
 
-    fn simplify(&self) -> Rc<dyn ExpNode> {
-        Rc::new(Constant(self.0))
+    fn simplify(&self) -> Box<dyn ExpNode> {
+        Box::new(Constant(self.0))
     }
 }
 
@@ -143,7 +143,7 @@ impl std::fmt::Display for Constant {
 pub struct Variable;
 
 impl ExpNode for Variable {
-    fn children(&self) -> Vec<Rc<dyn ExpNode>> {
+    fn children(&self) -> Vec<Box<dyn ExpNode>> {
         vec![]
     }
 
@@ -151,12 +151,12 @@ impl ExpNode for Variable {
         x
     }
 
-    fn mutate_node(&self, _: &EvolutionParams) -> Rc<dyn ExpNode> {
-        Rc::new(Variable)
+    fn mutate_node(&self, _: &EvolutionParams) -> Box<dyn ExpNode> {
+        Box::new(Variable)
     }
 
-    fn simplify(&self) -> Rc<dyn ExpNode> {
-        Rc::new(Variable)
+    fn simplify(&self) -> Box<dyn ExpNode> {
+        Box::new(Variable)
     }
 }
 
@@ -170,16 +170,16 @@ impl std::fmt::Display for Variable {
 
 // #[derive(Eq, PartialEq, Clone, Ord, PartialOrd, Debug, Hash)]
 #[derive(Clone, Debug)]
-pub struct Add(Rc<dyn ExpNode>, Rc<dyn ExpNode>);
+pub struct Add(Box<dyn ExpNode>, Box<dyn ExpNode>);
 
 impl Add {
-    pub fn new(a: Rc<dyn ExpNode>, b: Rc<dyn ExpNode>) -> Self {
+    pub fn new(a: Box<dyn ExpNode>, b: Box<dyn ExpNode>) -> Self {
         Self(a, b)
     }
 }
 
 impl ExpNode for Add {
-    fn children(&self) -> Vec<Rc<dyn ExpNode>> {
+    fn children(&self) -> Vec<Box<dyn ExpNode>> {
         vec![self.0.clone(), self.1.clone()]
     }
 
@@ -187,19 +187,19 @@ impl ExpNode for Add {
         self.0.eval(x) + self.1.eval(x)
     }
 
-    fn mutate_node(&self, params: &EvolutionParams) -> Rc<dyn ExpNode> {
-        Rc::new(Add(self.0.mutate(params), self.1.mutate(params)))
+    fn mutate_node(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
+        Box::new(Add(self.0.mutate(params), self.1.mutate(params)))
     }
 
-    fn simplify(&self) -> Rc<dyn ExpNode> {
+    fn simplify(&self) -> Box<dyn ExpNode> {
         let a = self.0.simplify();
         let b = self.1.simplify();
 
         match (a.downcast_ref::<Constant>(), b.downcast_ref::<Constant>()) {
-            (Some(Constant(c1)), Some(Constant(c2))) => Rc::new(Constant(c1 + c2)),
+            (Some(Constant(c1)), Some(Constant(c2))) => Box::new(Constant(c1 + c2)),
             (Some(Constant(c)), None) if relative_eq!(*c, 0.0) => b,
             (None, Some(Constant(c))) if relative_eq!(*c, 0.0) => a,
-            _ => Rc::new(Add(a, b)),
+            _ => Box::new(Add(a, b)),
         }
     }
 }
@@ -213,16 +213,16 @@ impl std::fmt::Display for Add {
 //---------------------------------------------------------------
 
 #[derive(Clone, Debug)]
-pub struct Mul(Rc<dyn ExpNode>, Rc<dyn ExpNode>);
+pub struct Mul(Box<dyn ExpNode>, Box<dyn ExpNode>);
 
 impl Mul {
-    pub fn new(a: Rc<dyn ExpNode>, b: Rc<dyn ExpNode>) -> Self {
+    pub fn new(a: Box<dyn ExpNode>, b: Box<dyn ExpNode>) -> Self {
         Self(a, b)
     }
 }
 
 impl ExpNode for Mul {
-    fn children(&self) -> Vec<Rc<dyn ExpNode>> {
+    fn children(&self) -> Vec<Box<dyn ExpNode>> {
         vec![self.0.clone(), self.1.clone()]
     }
 
@@ -230,19 +230,19 @@ impl ExpNode for Mul {
         self.0.eval(x) * self.1.eval(x)
     }
 
-    fn mutate_node(&self, params: &EvolutionParams) -> Rc<dyn ExpNode> {
-        Rc::new(Mul(self.0.mutate(params), self.1.mutate(params)))
+    fn mutate_node(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
+        Box::new(Mul(self.0.mutate(params), self.1.mutate(params)))
     }
 
-    fn simplify(&self) -> Rc<dyn ExpNode> {
+    fn simplify(&self) -> Box<dyn ExpNode> {
         let a = self.0.simplify();
         let b = self.1.simplify();
 
         match (a.downcast_ref::<Constant>(), b.downcast_ref::<Constant>()) {
-            (Some(Constant(c1)), Some(Constant(c2))) => Rc::new(Constant(c1 * c2)),
+            (Some(Constant(c1)), Some(Constant(c2))) => Box::new(Constant(c1 * c2)),
             (Some(Constant(c)), None) if relative_eq!(*c, 1.0) => b,
             (None, Some(Constant(c))) if relative_eq!(*c, 1.0) => a,
-            _ => Rc::new(Mul(a, b)),
+            _ => Box::new(Mul(a, b)),
         }
     }
 }
@@ -256,16 +256,16 @@ impl std::fmt::Display for Mul {
 //---------------------------------------------------------------
 
 #[derive(Clone, Debug)]
-pub struct Sin(Rc<dyn ExpNode>);
+pub struct Sin(Box<dyn ExpNode>);
 
 impl Sin {
-    pub fn new(a: Rc<dyn ExpNode>) -> Self {
+    pub fn new(a: Box<dyn ExpNode>) -> Self {
         Self(a)
     }
 }
 
 impl ExpNode for Sin {
-    fn children(&self) -> Vec<Rc<dyn ExpNode>> {
+    fn children(&self) -> Vec<Box<dyn ExpNode>> {
         vec![self.0.clone()]
     }
 
@@ -273,17 +273,17 @@ impl ExpNode for Sin {
         self.0.eval(x).sin()
     }
 
-    fn mutate_node(&self, params: &EvolutionParams) -> Rc<dyn ExpNode> {
-        Rc::new(Sin(self.0.mutate(params)))
+    fn mutate_node(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
+        Box::new(Sin(self.0.mutate(params)))
     }
 
-    fn simplify(&self) -> Rc<dyn ExpNode> {
+    fn simplify(&self) -> Box<dyn ExpNode> {
         let a = self.0.simplify();
 
         if let Some(Constant(c)) = a.downcast_ref::<Constant>() {
-            Rc::new(Constant(c.sin()))
+            Box::new(Constant(c.sin()))
         } else {
-            Rc::new(Sin(a))
+            Box::new(Sin(a))
         }
     }
 }
@@ -297,16 +297,16 @@ impl std::fmt::Display for Sin {
 //---------------------------------------------------------------
 
 #[derive(Clone, Debug)]
-pub struct Exp(Rc<dyn ExpNode>, Rc<dyn ExpNode>);
+pub struct Exp(Box<dyn ExpNode>, Box<dyn ExpNode>);
 
 impl Exp {
-    pub fn new(a: Rc<dyn ExpNode>, b: Rc<dyn ExpNode>) -> Self {
+    pub fn new(a: Box<dyn ExpNode>, b: Box<dyn ExpNode>) -> Self {
         Self(a, b)
     }
 }
 
 impl ExpNode for Exp {
-    fn children(&self) -> Vec<Rc<dyn ExpNode>> {
+    fn children(&self) -> Vec<Box<dyn ExpNode>> {
         vec![self.0.clone(), self.1.clone()]
     }
 
@@ -322,15 +322,15 @@ impl ExpNode for Exp {
         }
     }
 
-    fn mutate_node(&self, params: &EvolutionParams) -> Rc<dyn ExpNode> {
+    fn mutate_node(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
         if rand::random::<float>() < params.binary_switch_prob {
-            Rc::new(Exp(self.1.mutate(params), self.0.mutate(params)))
+            Box::new(Exp(self.1.mutate(params), self.0.mutate(params)))
         } else {
-            Rc::new(Exp(self.0.mutate(params), self.1.mutate(params)))
+            Box::new(Exp(self.0.mutate(params), self.1.mutate(params)))
         }
     }
 
-    fn simplify(&self) -> Rc<dyn ExpNode> {
+    fn simplify(&self) -> Box<dyn ExpNode> {
         let a = self.0.simplify();
         let b = self.1.simplify();
 
@@ -338,11 +338,11 @@ impl ExpNode for Exp {
             (Some(Constant(c1)), Some(Constant(c2))) => {
                 let r = c1.powf(*c2);
 
-                Rc::new(Constant(if !r.is_finite() { 0.0 } else { r }))
+                Box::new(Constant(if !r.is_finite() { 0.0 } else { r }))
             }
             (None, Some(Constant(c))) if relative_eq!(*c, 1.0) => a,
-            (None, Some(Constant(c))) if relative_eq!(*c, 0.0) => Rc::new(Constant(1.0)),
-            _ => Rc::new(Exp(a, b)),
+            (None, Some(Constant(c))) if relative_eq!(*c, 0.0) => Box::new(Constant(1.0)),
+            _ => Box::new(Exp(a, b)),
         }
     }
 }
@@ -356,16 +356,16 @@ impl std::fmt::Display for Exp {
 //---------------------------------------------------------------
 
 #[derive(Clone, Debug)]
-pub struct Log(Rc<dyn ExpNode>, Rc<dyn ExpNode>);
+pub struct Log(Box<dyn ExpNode>, Box<dyn ExpNode>);
 
 impl Log {
-    pub fn new(a: Rc<dyn ExpNode>, b: Rc<dyn ExpNode>) -> Self {
+    pub fn new(a: Box<dyn ExpNode>, b: Box<dyn ExpNode>) -> Self {
         Self(a, b)
     }
 }
 
 impl ExpNode for Log {
-    fn children(&self) -> Vec<Rc<dyn ExpNode>> {
+    fn children(&self) -> Vec<Box<dyn ExpNode>> {
         vec![self.0.clone(), self.1.clone()]
     }
 
@@ -381,15 +381,15 @@ impl ExpNode for Log {
         }
     }
 
-    fn mutate_node(&self, params: &EvolutionParams) -> Rc<dyn ExpNode> {
+    fn mutate_node(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
         if rand::random::<float>() < params.binary_switch_prob {
-            Rc::new(Log(self.1.mutate(params), self.0.mutate(params)))
+            Box::new(Log(self.1.mutate(params), self.0.mutate(params)))
         } else {
-            Rc::new(Log(self.0.mutate(params), self.1.mutate(params)))
+            Box::new(Log(self.0.mutate(params), self.1.mutate(params)))
         }
     }
 
-    fn simplify(&self) -> Rc<dyn ExpNode> {
+    fn simplify(&self) -> Box<dyn ExpNode> {
         let a = self.0.simplify();
         let b = self.1.simplify();
 
@@ -397,9 +397,9 @@ impl ExpNode for Log {
             (Some(Constant(c1)), Some(Constant(c2))) => {
                 let r = c1.log(*c2);
 
-                Rc::new(Constant(if !r.is_finite() { 0.0 } else { r }))
+                Box::new(Constant(if !r.is_finite() { 0.0 } else { r }))
             }
-            _ => Rc::new(Log(a, b)),
+            _ => Box::new(Log(a, b)),
         }
     }
 }
