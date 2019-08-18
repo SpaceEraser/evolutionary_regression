@@ -5,9 +5,8 @@ use downcast_rs::{impl_downcast, Downcast};
 use rand::prelude::*;
 use statrs::distribution::{Geometric, Normal};
 
-pub fn random_expression(size: i32, params: &EvolutionParams) -> Box<dyn ExpNode> {
-    let size = size.min(100);
-
+pub fn random_expression(mut size: i32, params: &EvolutionParams) -> Box<dyn ExpNode> {
+    size = size.min(100);
     let mut rng = rand::thread_rng();
 
     if size == 1 {
@@ -16,10 +15,12 @@ pub fn random_expression(size: i32, params: &EvolutionParams) -> Box<dyn ExpNode
         } else {
             Box::new(Constant(
                 Normal::new(params.new_const_mean as _, params.new_const_std as _)
-                    .expect(&format!(
-                        "invalid: new_const_mean {} new_const_std {}",
-                        params.new_const_mean, params.new_const_std
-                    ))
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "invalid: new_const_mean {} new_const_std {}",
+                            params.new_const_mean, params.new_const_std
+                        )
+                    })
                     .sample(&mut rng) as float,
             ))
         }
@@ -60,12 +61,12 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast + objekt::Clon
     fn mutate(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
         let mut rng = rand::thread_rng();
 
-        let size = self.size();
+        let size = self.size() as float;
 
-        if rng.gen::<float>() < params.mutate_replace_rate.powf(-size as float) {
-            let size = Geometric::new(1.0 / ((size + 1) as f64))
+        if size < 100.0 && rng.gen::<float>() < params.mutate_replace_rate.powf(-size) {
+            let size = Geometric::new(1.0 / (size as f64 + 0.01).sqrt())
                 .unwrap()
-                .sample(&mut rng);
+                .sample(&mut rng).min((size*1.1).ceil() as _);
             random_expression(size as _, params)
         } else {
             self.mutate_node(params)
@@ -115,10 +116,12 @@ impl ExpNode for Constant {
         if rng.gen::<float>() < params.const_mutation_prob {
             let c = self.0.abs().max(0.0001);
             let r = Normal::new(0.0, (c / params.const_jitter_factor).into())
-                .expect(&format!(
-                    "invalid: c/const_jitter_factor {}",
-                    c / params.const_jitter_factor
-                ))
+                .unwrap_or_else(|_| {
+                    panic!(
+                        "invalid: c/const_jitter_factor {}",
+                        c / params.const_jitter_factor
+                    )
+                })
                 .sample(&mut rng) as float;
             Box::new(Constant(self.0 + r))
         } else {

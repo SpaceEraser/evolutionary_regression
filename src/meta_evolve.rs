@@ -41,9 +41,9 @@ impl MetaEntity {
     }
 
     pub fn fitness(&self) -> float {
-        if !self.params.is_valid() {
-            return std::f64::INFINITY as float;
-        }
+        // if !self.params.is_valid() {
+        //     return std::f64::INFINITY as float;
+        // }
         if let Some(fitness) = *self.fitness.borrow() {
             return fitness;
         }

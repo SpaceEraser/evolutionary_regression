@@ -31,10 +31,12 @@ impl Evolve {
     pub fn step(&mut self, iterations: usize) {
         let mut rng = rand::thread_rng();
 
+        // println!("Stepping {} iterations with population of {}", iterations, self.pop.len());
+
         for _c in 0..iterations {
             // for p in self.pop.iter() {
             //     let size = p.size();
-            //     if size > 50 {
+            //     if size > 100 {
             //         println!("Huge size detected: {}", size);
             //     }
             // }

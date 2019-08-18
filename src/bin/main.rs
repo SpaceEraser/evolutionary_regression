@@ -18,7 +18,7 @@ fn main() {
 
     // increase stack size
     rayon::ThreadPoolBuilder::new()
-        .stack_size(4 * 1024 * 1024 * 1024)
+        .stack_size(4 * 1024 * 1024)
         .build_global()
         .unwrap();
 
