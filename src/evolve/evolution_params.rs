@@ -3,6 +3,8 @@ use rand::distributions::OpenClosed01;
 use rand::prelude::*;
 use statrs::distribution::{Exponential, Geometric, Normal};
 
+const MAX_POPULATION_NUM: float = 100.0;
+
 #[derive(PartialEq, Clone, PartialOrd, Debug)]
 pub struct EvolutionParams {
     /// valid range: [1, inf)
@@ -55,7 +57,10 @@ impl EvolutionParams {
         let mut rng = rand::thread_rng();
 
         Self {
-            population_num: Geometric::new(0.1 as _).unwrap().sample(&mut rng) as _,
+            population_num: Geometric::new(0.1 as _)
+                .unwrap()
+                .sample(&mut rng)
+                .min(MAX_POPULATION_NUM.into()) as _,
             new_const_mean: Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as _,
             new_const_std: Exponential::new(0.9 as _).unwrap().sample(&mut rng) as _,
             new_random_expression_prob: rng.sample(OpenClosed01),
@@ -81,7 +86,7 @@ impl EvolutionParams {
                 let o = Normal::new(0.0, self.population_num as _)
                     .unwrap()
                     .sample(&mut rng) as float;
-                (self.population_num + o).max(1.0)
+                (self.population_num + o).clamp(1.0, MAX_POPULATION_NUM)
             },
             new_const_mean: {
                 let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
