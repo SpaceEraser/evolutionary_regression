@@ -9,22 +9,7 @@ pub fn random_expression(mut size: i32, params: &EvolutionParams) -> Box<dyn Exp
     size = size.min(100);
     let mut rng = rand::thread_rng();
 
-    if size == 1 {
-        if rng.gen::<bool>() {
-            Box::new(Variable)
-        } else {
-            Box::new(Constant(
-                Normal::new(params.new_const_mean as _, params.new_const_std as _)
-                    .unwrap_or_else(|_| {
-                        panic!(
-                            "invalid: new_const_mean {} new_const_std {}",
-                            params.new_const_mean, params.new_const_std
-                        )
-                    })
-                    .sample(&mut rng) as float,
-            ))
-        }
-    } else if size > 2 {
+    if size > 2 {
         match rng.gen_range::<i32, _, _>(0, 4) {
             0 => Box::new(Add::new(
                 random_expression(size - 2, params),
@@ -46,6 +31,21 @@ pub fn random_expression(mut size: i32, params: &EvolutionParams) -> Box<dyn Exp
         }
     } else if size > 1 {
         Box::new(Sin::new(random_expression(size - 1, params)))
+    } else if size == 1 {
+        if rng.gen::<bool>() {
+            Box::new(Variable)
+        } else {
+            Box::new(Constant(
+                Normal::new(params.new_const_mean as _, params.new_const_std as _)
+                    .unwrap_or_else(|_| {
+                        panic!(
+                            "invalid: new_const_mean {} new_const_std {}",
+                            params.new_const_mean, params.new_const_std
+                        )
+                    })
+                    .sample(&mut rng) as float,
+            ))
+        }
     } else {
         panic!("invalid size for random_expression: {:?}", size);
     }
@@ -66,7 +66,7 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast + objekt::Clon
         if size < 100.0 && rng.gen::<float>() < params.mutate_replace_rate.powf(-size) {
             let size = Geometric::new(1.0 / (size as f64 + 0.01).sqrt())
                 .unwrap()
-                .sample(&mut rng).min((size*1.1).ceil() as _);
+                .sample(&mut rng).min((size + size*(1.0/size.powi(2))).floor() as _);
             random_expression(size as _, params)
         } else {
             self.mutate_node(params)

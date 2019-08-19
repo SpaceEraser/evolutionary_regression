@@ -27,19 +27,19 @@ impl Evolve {
         Self::new(xs.iter().zip(ys).map(|(&x, y)| [x, y]).collect(), None)
     }
 
-    /// returns how many iterations it took to reach its most fit individual
+    /// step evolution forward
     pub fn step(&mut self, iterations: usize) {
         let mut rng = rand::thread_rng();
 
-        // println!("Stepping {} iterations with population of {}", iterations, self.pop.len());
+        println!("Stepping {} iterations with population of {}", iterations, self.pop.len());
 
         for _c in 0..iterations {
-            // for p in self.pop.iter() {
-            //     let size = p.size();
-            //     if size > 100 {
-            //         println!("Huge size detected: {}", size);
-            //     }
-            // }
+            for p in self.pop.iter() {
+                let size = p.size();
+                if size > 10_000 {
+                    println!("Huge size detected: {}", size);
+                }
+            }
             let mut new_pop = Vec::with_capacity(self.pop.len());
 
             // add the best of the last population to new population
@@ -95,10 +95,11 @@ impl Evolve {
             self.pop = new_pop;
             self.total_iterations += 1;
 
-            // if (_c + 1) % 1000 == 0 {
+            // if (_c + 1) % 10_000 == 0 {
             //     println!(
-            //         "iteration {:?}: best size {:?}, best fitness {:?} => {}",
+            //         "iteration {} (population size in bytes: {}): best size {}, best fitness {} => {}",
             //         (_c + 1),
+            //         self.pop.iter().map(|e| (e.size() as usize)*std::mem::size_of_val(e)).sum::<usize>(),
             //         self.best_individual().size(),
             //         self.best_fitness(),
             //         self.best_individual()
