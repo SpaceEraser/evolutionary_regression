@@ -1,3 +1,5 @@
+#![feature(box_patterns)]
+#![feature(bind_by_move_pattern_guards)]
 #![feature(clamp)]
 
 pub mod evolve;

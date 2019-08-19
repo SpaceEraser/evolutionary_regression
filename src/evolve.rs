@@ -12,7 +12,7 @@ use wasm_bindgen::prelude::*;
 pub type float = f32;
 
 #[wasm_bindgen]
-#[derive(Debug)]
+#[derive(Clone)]
 pub struct Evolve {
     pop: Vec<Box<dyn ExpNode>>,
     data: Vec<[float; 2]>,
@@ -31,15 +31,31 @@ impl Evolve {
     pub fn step(&mut self, iterations: usize) {
         let mut rng = rand::thread_rng();
 
-        println!("Stepping {} iterations with population of {}", iterations, self.pop.len());
+        // println!(
+        //     "Stepping {} iterations with population of {}",
+        //     iterations,
+        //     self.pop.len()
+        // );
 
         for _c in 0..iterations {
-            for p in self.pop.iter() {
-                let size = p.size();
-                if size > 10_000 {
-                    println!("Huge size detected: {}", size);
-                }
+            let pop_size = self
+                .pop
+                .iter()
+                .map(|e| (e.size() as usize) * std::mem::size_of_val(e))
+                .sum::<usize>();
+            if pop_size > 500_000 {
+                println!(
+                    "Huge population size detected: {}. Biggest size is {}",
+                    pop_size,
+                    self.pop.iter().map(|e| e.size()).max().unwrap()
+                );
             }
+            // for p in self.pop.iter() {
+            //     let size = p.size();
+            //     if size > 10_000 {
+            //         println!("Huge size detected: {}", size);
+            //     }
+            // }
             let mut new_pop = Vec::with_capacity(self.pop.len());
 
             // add the best of the last population to new population
@@ -56,6 +72,7 @@ impl Evolve {
                                     < self.params.repeated_mutation_rate.powf(-(i as float))
                             {
                                 new_pop.push(self.pop[i].mutate(&self.params));
+
                                 if new_pop.len() == self.pop.len() {
                                     break 'newloop;
                                 }
@@ -72,6 +89,7 @@ impl Evolve {
                         let size = Geometric::new(self.params.new_random_expression_prob as _)
                             .unwrap()
                             .sample(&mut rng);
+
                         new_pop.push(random_expression(size as _, &self.params));
                         if new_pop.len() == self.pop.len() {
                             break 'newloop;
@@ -96,14 +114,7 @@ impl Evolve {
             self.total_iterations += 1;
 
             // if (_c + 1) % 10_000 == 0 {
-            //     println!(
-            //         "iteration {} (population size in bytes: {}): best size {}, best fitness {} => {}",
-            //         (_c + 1),
-            //         self.pop.iter().map(|e| (e.size() as usize)*std::mem::size_of_val(e)).sum::<usize>(),
-            //         self.best_individual().size(),
-            //         self.best_fitness(),
-            //         self.best_individual()
-            //     );
+            //     println!("{:?}", self);
             // }
         }
     }
@@ -138,6 +149,7 @@ impl Evolve {
                 let size = Geometric::new(params.new_random_expression_prob as _)
                     .unwrap()
                     .sample(&mut rng);
+
                 random_expression(size as _, &params).simplify()
             };
             params.population_num.round() as _
@@ -155,5 +167,30 @@ impl Evolve {
 
     pub fn best_individual(&self) -> Box<dyn ExpNode> {
         self.pop[0].clone()
+    }
+}
+
+impl std::fmt::Debug for Evolve {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{{")?;
+        writeln!(f, "\tIteration {}", self.total_iterations)?;
+        writeln!(f, "\tPopulation Size: {}", self.pop.len())?;
+        writeln!(
+            f,
+            "\tPopulation Size: {} bytes",
+            self.pop
+                .iter()
+                .map(|e| (e.size() as usize) * std::mem::size_of_val(e))
+                .sum::<usize>()
+        )?;
+        writeln!(
+            f,
+            "\tLargest Size: {}",
+            self.pop.iter().map(|e| e.size()).max().unwrap()
+        )?;
+        writeln!(f, "\tBest Size: {}", self.best_individual().size())?;
+        writeln!(f, "\tBest Fitness: {}", self.best_fitness())?;
+        writeln!(f, "\tBest Individual:  {}", self.best_individual())?;
+        write!(f, "}}")
     }
 }

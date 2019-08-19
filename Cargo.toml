@@ -12,9 +12,6 @@ default-run = "main"
 [lib]
 crate-type = ["cdylib", "rlib"]
 
-[[bin]]
-name = "stat_tests"
-
 [features]
 # If you uncomment this line, it will enable `wee_alloc`:
 # default = ["wee_alloc"]

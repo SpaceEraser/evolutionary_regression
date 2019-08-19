@@ -5,50 +5,70 @@ use downcast_rs::{impl_downcast, Downcast};
 use rand::prelude::*;
 use statrs::distribution::{Geometric, Normal};
 
-pub fn random_expression(mut size: i32, params: &EvolutionParams) -> Box<dyn ExpNode> {
-    size = size.min(100);
-    let mut rng = rand::thread_rng();
+const SIZE_LIMIT: i32 = 512;
 
-    if size > 2 {
-        match rng.gen_range::<i32, _, _>(0, 4) {
-            0 => Box::new(Add::new(
-                random_expression(size - 2, params),
-                random_expression(size - 2, params),
-            )),
-            1 => Box::new(Mul::new(
-                random_expression(size - 2, params),
-                random_expression(size - 2, params),
-            )),
-            2 => Box::new(Exp::new(
-                random_expression(size - 2, params),
-                random_expression(size - 2, params),
-            )),
-            3 => Box::new(Log::new(
-                random_expression(size - 2, params),
-                random_expression(size - 2, params),
-            )),
-            _ => panic!("this should never happen"),
-        }
-    } else if size > 1 {
-        Box::new(Sin::new(random_expression(size - 1, params)))
-    } else if size == 1 {
-        if rng.gen::<bool>() {
-            Box::new(Variable)
-        } else {
+pub fn random_expression(size: i32, params: &EvolutionParams) -> Box<dyn ExpNode> {
+    static BINARY_OPTS: &'static [fn(i32, &EvolutionParams) -> Box<dyn ExpNode>; 4] = &[
+        |s, p| {
+            let d = thread_rng().gen_range(2, s);
+            Box::new(Add::new(
+                random_expression(d - 1, p),
+                random_expression(s - d, p),
+            ))
+        },
+        |s, p| {
+            let d = thread_rng().gen_range(2, s);
+            Box::new(Mul::new(
+                random_expression(d - 1, p),
+                random_expression(s - d, p),
+            ))
+        },
+        |s, p| {
+            let d = thread_rng().gen_range(2, s);
+            Box::new(Exp::new(
+                random_expression(d - 1, p),
+                random_expression(s - d, p),
+            ))
+        },
+        |s, p| {
+            let d = thread_rng().gen_range(2, s);
+            Box::new(Log::new(
+                random_expression(d - 1, p),
+                random_expression(s - d, p),
+            ))
+        },
+    ];
+    static UNARY_OPTS: &'static [fn(i32, &EvolutionParams) -> Box<dyn ExpNode>; 1] =
+        &[|s, p| Box::new(Sin::new(random_expression(s - 1, p)))];
+    static NULLARY_OPTS: &'static [fn(i32, &EvolutionParams) -> Box<dyn ExpNode>; 2] = &[
+        |_, _| Box::new(Variable),
+        |_, p| {
             Box::new(Constant(
-                Normal::new(params.new_const_mean as _, params.new_const_std as _)
+                Normal::new(p.new_const_mean as _, p.new_const_std as _)
                     .unwrap_or_else(|_| {
                         panic!(
                             "invalid: new_const_mean {} new_const_std {}",
-                            params.new_const_mean, params.new_const_std
+                            p.new_const_mean, p.new_const_std
                         )
                     })
-                    .sample(&mut rng) as float,
+                    .sample(&mut thread_rng()) as float,
             ))
+        },
+    ];
+
+    let mut opts = Vec::new();
+
+    if size > 1 {
+        opts.extend_from_slice(UNARY_OPTS);
+        if size > 2 {
+            opts.extend_from_slice(BINARY_OPTS);
         }
-    } else {
-        panic!("invalid size for random_expression: {:?}", size);
+    } else if size == 1 {
+        opts.extend_from_slice(NULLARY_OPTS);
     }
+
+    opts.choose(&mut thread_rng())
+        .expect(&format!("invalid size for new expression: {}", size))(size, params)
 }
 
 pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast + objekt::Clone {
@@ -61,12 +81,19 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast + objekt::Clon
     fn mutate(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
         let mut rng = rand::thread_rng();
 
-        let size = self.size() as float;
+        let self_size = self.size();
 
-        if size < 100.0 && rng.gen::<float>() < params.mutate_replace_rate.powf(-size) {
-            let size = Geometric::new(1.0 / (size as f64 + 0.01).sqrt())
+        if self_size > SIZE_LIMIT {
+            let size = Geometric::new(params.new_random_expression_prob as _)
                 .unwrap()
-                .sample(&mut rng).min((size + size*(1.0/size.powi(2))).floor() as _);
+                .sample(&mut rng);
+
+            random_expression(size as _, params)
+        } else if rng.gen::<float>() < params.mutate_replace_rate.powf(-(self_size as float)) {
+            let size = Geometric::new(1.0 / (self_size as f64 + 0.5))
+                .unwrap()
+                .sample(&mut rng);
+
             random_expression(size as _, params)
         } else {
             self.mutate_node(params)
@@ -74,13 +101,18 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast + objekt::Clon
     }
 
     fn fitness(&self, data: &[[float; 2]]) -> float {
+        let size = self.size();
+        if size > SIZE_LIMIT {
+            return std::f32::MAX;
+        }
+
         let accuracy: float = data
             .iter()
             .map(|&[x, y]| self.eval(x) - y)
             .map(|y| y.abs())
             .sum();
 
-        accuracy + (self.size() as float)
+        accuracy + (size as float)
     }
 
     fn simplify(&self) -> Box<dyn ExpNode>;
@@ -107,7 +139,11 @@ impl ExpNode for Constant {
     }
 
     fn eval(&self, _: float) -> float {
-        self.0
+        if self.0.is_finite() {
+            self.0
+        } else {
+            0.0
+        }
     }
 
     fn mutate_node(&self, params: &EvolutionParams) -> Box<dyn ExpNode> {
@@ -151,7 +187,11 @@ impl ExpNode for Variable {
     }
 
     fn eval(&self, x: float) -> float {
-        x
+        if x.is_finite() {
+            x
+        } else {
+            0.0
+        }
     }
 
     fn mutate_node(&self, _: &EvolutionParams) -> Box<dyn ExpNode> {
@@ -318,10 +358,10 @@ impl ExpNode for Exp {
         let b = self.1.eval(x);
         let r = a.powf(b);
 
-        if !r.is_finite() {
-            0.0
-        } else {
+        if r.is_finite() {
             r
+        } else {
+            0.0
         }
     }
 
@@ -377,10 +417,10 @@ impl ExpNode for Log {
         let b = self.1.eval(x);
         let r = a.log(b);
 
-        if !r.is_finite() {
-            0.0
-        } else {
+        if r.is_finite() {
             r
+        } else {
+            0.0
         }
     }
 

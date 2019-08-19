@@ -176,7 +176,7 @@ impl Default for EvolutionParams {
             population_num: 50.0,
             new_const_mean: 0.0,
             new_const_std: 2.0,
-            new_random_expression_prob: 0.3,
+            new_random_expression_prob: 0.1,
             repeated_mutation_rate: 1.5,
             random_expression_insert_rate: 3.0,
             mutate_replace_rate: 3.0,
