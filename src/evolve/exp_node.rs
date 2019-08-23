@@ -65,10 +65,11 @@ pub fn random_expression(size: i32, params: &EvolutionParams) -> Box<dyn ExpNode
         }
     } else if size == 1 {
         opts.extend_from_slice(NULLARY_OPTS);
+    } else {
+        panic!("invalid size for new expression: {}", size);
     }
 
-    opts.choose(&mut thread_rng())
-        .expect(&format!("invalid size for new expression: {}", size))(size, params)
+    opts.choose(&mut thread_rng()).unwrap()(size, params)
 }
 
 pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast + objekt::Clone {
@@ -83,14 +84,9 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast + objekt::Clon
 
         let self_size = self.size();
 
-        if self_size > SIZE_LIMIT {
-            let size = Geometric::new(params.new_random_expression_prob as _)
-                .unwrap()
-                .sample(&mut rng);
-
-            random_expression(size as _, params)
-        } else if rng.gen::<float>() < params.mutate_replace_rate.powf(-(self_size as float)) {
-            let size = Geometric::new(1.0 / (self_size as f64 + 0.5))
+        if rng.gen::<float>() < params.mutate_replace_rate.powf(-(self_size as float)) {
+            // TODO: limit this more somehow
+            let size = Geometric::new(1.0 / (self_size as f64 + 1.0))
                 .unwrap()
                 .sample(&mut rng);
 
@@ -109,7 +105,7 @@ pub trait ExpNode: std::fmt::Debug + std::fmt::Display + Downcast + objekt::Clon
         let accuracy: float = data
             .iter()
             .map(|&[x, y]| self.eval(x) - y)
-            .map(|y| y.abs())
+            .map(|y| y*y)
             .sum();
 
         accuracy + (size as float)
