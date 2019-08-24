@@ -43,7 +43,7 @@ impl Evolve {
                 .iter()
                 .map(|e| (e.size() as usize) * std::mem::size_of_val(e))
                 .sum::<usize>();
-            if pop_size > 500_000 {
+            if pop_size > 1_000_000 {
                 println!(
                     "Huge population size detected: {}. Max size is {}. Max depth is {}",
                     pop_size,
@@ -108,9 +108,9 @@ impl Evolve {
             self.pop = new_pop;
             self.total_iterations += 1;
 
-            if (_c + 1) % 10_000 == 0 {
-                println!("{:?}", self);
-            }
+            // if (_c + 1) % 10_000 == 0 {
+            //     println!("{:?}", self);
+            // }
         }
     }
 
