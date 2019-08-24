@@ -1,8 +1,8 @@
 mod evolution_params;
-mod exp_node;
+mod expression;
 
 pub use evolution_params::EvolutionParams;
-use exp_node::*;
+use expression::ExpTree;
 use ordered_float::OrderedFloat;
 use rand::prelude::*;
 use statrs::distribution::Geometric;
@@ -14,7 +14,7 @@ pub type float = f32;
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct Evolve {
-    pop: Vec<Box<dyn ExpNode>>,
+    pop: Vec<ExpTree>,
     data: Vec<[float; 2]>,
     params: EvolutionParams,
     total_iterations: usize,
@@ -45,17 +45,12 @@ impl Evolve {
                 .sum::<usize>();
             if pop_size > 500_000 {
                 println!(
-                    "Huge population size detected: {}. Biggest size is {}",
+                    "Huge population size detected: {}. Max size is {}. Max depth is {}",
                     pop_size,
-                    self.pop.iter().map(|e| e.size()).max().unwrap()
+                    self.pop.iter().map(|e| e.size()).max().unwrap(),
+                    self.pop.iter().map(|e| e.depth()).max().unwrap(),
                 );
             }
-            // for p in self.pop.iter() {
-            //     let size = p.size();
-            //     if size > 10_000 {
-            //         println!("Huge size detected: {}", size);
-            //     }
-            // }
             let mut new_pop = Vec::with_capacity(self.pop.len());
 
             // add the best of the last population to new population
@@ -90,7 +85,7 @@ impl Evolve {
                             .unwrap()
                             .sample(&mut rng);
 
-                        new_pop.push(random_expression(size as _, &self.params));
+                        new_pop.push(ExpTree::new_random(size as _, &self.params));
                         if new_pop.len() == self.pop.len() {
                             break 'newloop;
                         }
@@ -113,9 +108,9 @@ impl Evolve {
             self.pop = new_pop;
             self.total_iterations += 1;
 
-            // if (_c + 1) % 10_000 == 0 {
-            //     println!("{:?}", self);
-            // }
+            if (_c + 1) % 10_000 == 0 {
+                println!("{:?}", self);
+            }
         }
     }
 
@@ -137,10 +132,6 @@ impl Evolve {
 }
 
 impl Evolve {
-    pub fn from_pair(data: Vec<[float; 2]>) -> Self {
-        Self::new(data, None)
-    }
-
     pub fn new(data: Vec<[float; 2]>, params: Option<EvolutionParams>) -> Self {
         let params = params.unwrap_or_else(|| EvolutionParams::default());
         let mut rng = rand::thread_rng();
@@ -150,7 +141,7 @@ impl Evolve {
                     .unwrap()
                     .sample(&mut rng);
 
-                random_expression(size as _, &params).simplify()
+                ExpTree::new_random(size as _, &params).simplify()
             };
             params.population_num.round() as _
         ];
@@ -165,8 +156,12 @@ impl Evolve {
         }
     }
 
-    pub fn best_individual(&self) -> Box<dyn ExpNode> {
-        self.pop[0].clone()
+    pub fn from_pair(data: Vec<[float; 2]>) -> Self {
+        Self::new(data, None)
+    }
+
+    pub fn best_individual(&self) -> &ExpTree {
+        &self.pop[0]
     }
 }
 
@@ -185,10 +180,16 @@ impl std::fmt::Debug for Evolve {
         )?;
         writeln!(
             f,
-            "\tLargest Size: {}",
+            "\tMax Size: {}",
             self.pop.iter().map(|e| e.size()).max().unwrap()
         )?;
+        writeln!(
+            f,
+            "\tMax Depth: {}",
+            self.pop.iter().map(|e| e.depth()).max().unwrap()
+        )?;
         writeln!(f, "\tBest Size: {}", self.best_individual().size())?;
+        writeln!(f, "\tBest Depth: {}", self.best_individual().depth())?;
         writeln!(f, "\tBest Fitness: {}", self.best_fitness())?;
         writeln!(f, "\tBest Individual:  {}", self.best_individual())?;
         write!(f, "}}")
