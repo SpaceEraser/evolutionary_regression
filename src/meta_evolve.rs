@@ -4,12 +4,13 @@ use rand::prelude::*;
 use rayon::prelude::*;
 use std::cell::RefCell;
 
-static FUNCTIONS: &[fn(float) -> float; 3] = &[
+static FUNCTIONS: &[fn(float) -> float; 4] = &[
     |x| 2.0 * x * x - 3.0 * x * x * x,
-    |x| x.sin() + 1.0,
+    |x| x.cos() + 1.0,
     |x| (3.0 as float).powf(x),
+    |x| x*x - x - 1.0,
 ];
-const RUNS_PER_FUNCTION: usize = 4;
+const RUNS_PER_FUNCTION: usize = 3;
 const META_POPULATION_NUM: usize = 30;
 
 #[derive(PartialEq, Clone, PartialOrd, Debug)]
@@ -54,7 +55,7 @@ impl MetaEntity {
         let params = &self.params;
         let fitness = FUNCTIONS
             .iter()
-            .flat_map(|f| (0 .. RUNS_PER_FUNCTION).map(move |_| f))
+            .flat_map(|f| (0..RUNS_PER_FUNCTION).map(move |_| f))
             .collect::<Vec<_>>()
             .into_par_iter()
             .map(|f| {
@@ -98,7 +99,9 @@ pub struct MetaEvolve {
 impl Default for MetaEvolve {
     fn default() -> Self {
         Self {
-            pop: (0 .. META_POPULATION_NUM).map(|_| MetaEntity::new_random()).collect(),
+            pop: (0..META_POPULATION_NUM)
+                .map(|_| MetaEntity::new_random())
+                .collect(),
             total_iterations: 0,
         }
     }

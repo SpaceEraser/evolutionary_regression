@@ -195,11 +195,11 @@ impl ExpNode {
         let mut rng = rand::thread_rng();
 
         if rng.gen::<float>() < params.mutate_replace_rate.powf(-(self.size() as float)) {
-            // TODO: limit this somehow
             let size = Geometric::new(1.0 / (f64::from(self.size()) + 1.0))
                 .unwrap()
                 .sample(&mut rng)
-                .min(f64::from(SIZE_LIMIT - self.size() + 1));
+                .min(f64::from(SIZE_LIMIT - self.size()))
+                .max(1.0);
 
             random_expression(size as _, params)
         } else {

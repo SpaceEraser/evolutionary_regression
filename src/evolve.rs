@@ -81,9 +81,10 @@ impl Evolve {
                     if rng.gen::<float>()
                         < (self.params.random_expression_insert_rate as float).powf(-(i as float))
                     {
-                        let size = Geometric::new(f64::from(self.params.new_random_expression_prob))
-                            .unwrap()
-                            .sample(&mut rng);
+                        let size =
+                            Geometric::new(f64::from(self.params.new_random_expression_prob))
+                                .unwrap()
+                                .sample(&mut rng);
 
                         new_pop.push(ExpTree::new_random(size as _, &self.params));
                         if new_pop.len() == self.pop.len() {
