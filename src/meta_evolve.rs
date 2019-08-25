@@ -143,7 +143,11 @@ impl MetaEvolve {
         self.pop[0].fitness()
     }
 
-    pub fn best_individual(&self) -> &EvolutionParams {
+    pub fn best_params(&self) -> &EvolutionParams {
         &self.pop[0].params
+    }
+
+    pub fn best_individual(&self) -> &MetaEntity {
+        &self.pop[0]
     }
 }
