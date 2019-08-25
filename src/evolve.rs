@@ -12,7 +12,7 @@ use wasm_bindgen::prelude::*;
 pub type float = f32;
 
 #[wasm_bindgen]
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Evolve {
     pop: Vec<ExpTree>,
     data: Vec<[float; 2]>,
@@ -109,7 +109,7 @@ impl Evolve {
             self.total_iterations += 1;
 
             // if (_c + 1) % 10_000 == 0 {
-            //     println!("{:?}", self);
+            //     println!("{}", self);
             // }
         }
     }
@@ -165,7 +165,7 @@ impl Evolve {
     }
 }
 
-impl std::fmt::Debug for Evolve {
+impl std::fmt::Display for Evolve {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{{")?;
         writeln!(f, "\tIteration {}", self.total_iterations)?;

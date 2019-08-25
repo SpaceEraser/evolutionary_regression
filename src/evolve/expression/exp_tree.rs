@@ -1,10 +1,7 @@
 use crate::evolve::{
-    float,
     evolution_params::EvolutionParams,
-    expression::{
-        ExpNode,
-        random_expression,
-    },
+    expression::{random_expression, ExpNode},
+    float,
 };
 
 #[derive(Debug, Clone)]
@@ -14,9 +11,7 @@ pub struct ExpTree {
 
 impl ExpTree {
     pub fn new(root: ExpNode) -> Self {
-        Self {
-            root
-        }
+        Self { root }
     }
 
     pub fn new_random(size: u32, params: &EvolutionParams) -> Self {
@@ -47,8 +42,6 @@ impl ExpTree {
         self.root.size()
     }
 }
-
-
 
 impl std::fmt::Display for ExpTree {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

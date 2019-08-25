@@ -186,3 +186,32 @@ impl Default for EvolutionParams {
         }
     }
 }
+
+impl std::fmt::Display for EvolutionParams {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{{")?;
+        writeln!(f, "\tpopulation_num: {:.4}", self.population_num)?;
+        writeln!(f, "\tnew_const_mean: {:.4}", self.new_const_mean)?;
+        writeln!(f, "\tnew_const_std: {:.4}", self.new_const_std)?;
+        writeln!(
+            f,
+            "\tnew_random_expression_prob: {:.4}",
+            self.new_random_expression_prob
+        )?;
+        writeln!(
+            f,
+            "\trepeated_mutation_rate: {:.4}",
+            self.repeated_mutation_rate
+        )?;
+        writeln!(
+            f,
+            "\trandom_expression_insert_rate: {:.4}",
+            self.random_expression_insert_rate
+        )?;
+        writeln!(f, "\tmutate_replace_rate: {:.4}", self.mutate_replace_rate)?;
+        writeln!(f, "\tconst_mutation_prob: {:.4}", self.const_mutation_prob)?;
+        writeln!(f, "\tconst_jitter_factor: {:.4}", self.const_jitter_factor)?;
+        writeln!(f, "\tbinary_switch_prob: {:.4}", self.binary_switch_prob)?;
+        write!(f, "}}")
+    }
+}

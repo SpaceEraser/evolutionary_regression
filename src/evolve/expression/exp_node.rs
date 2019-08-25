@@ -1,7 +1,7 @@
 use crate::evolve::{
     evolution_params::EvolutionParams,
     expression::{ExpTree, SIZE_LIMIT},
-    float
+    float,
 };
 use approx::relative_eq;
 use rand::prelude::*;
@@ -21,7 +21,11 @@ pub enum ExpNodeOp {
 impl ExpNodeOp {
     pub fn is_const(&self) -> bool {
         use ExpNodeOp::*;
-        if let Const(_) = self { true } else { false }
+        if let Const(_) = self {
+            true
+        } else {
+            false
+        }
     }
 
     pub fn is_nullary(&self) -> bool {
@@ -36,7 +40,10 @@ impl ExpNodeOp {
 
     pub fn is_binary(&self) -> bool {
         use ExpNodeOp::*;
-        [Add, Mul, Exp, Log].iter().position(|e| e == self).is_some()
+        [Add, Mul, Exp, Log]
+            .iter()
+            .position(|e| e == self)
+            .is_some()
     }
 }
 
@@ -107,14 +114,18 @@ impl ExpNode {
             Const(c) => c,
         };
 
-        if r.is_finite() { r } else { 0.0 }
+        if r.is_finite() {
+            r
+        } else {
+            0.0
+        }
     }
 
     pub fn children(&self) -> &[ExpNode] {
         &self.children
     }
 
-    /// change node slightly
+    /// change node slightly (but call `mutate` on children, which could change them significantly)
     pub fn jitter(&self, tree: &ExpTree, params: &EvolutionParams) -> Self {
         use ExpNodeOp::*;
 
@@ -191,7 +202,7 @@ impl ExpNode {
             let size = Geometric::new(1.0 / (self.size() as f64 + 1.0))
                 .unwrap()
                 .sample(&mut rng)
-                .min((SIZE_LIMIT - self.size()) as _);
+                .min((SIZE_LIMIT - self.size() + 1) as _);
 
             random_expression(size as _, params)
         } else {

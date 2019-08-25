@@ -69,6 +69,24 @@ impl MetaEntity {
     }
 }
 
+impl std::fmt::Display for MetaEntity {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        writeln!(f, "{{")?;
+        writeln!(f, "\tfitness: {:.4}", self.fitness())?;
+        writeln!(
+            f,
+            "\tparams: {}",
+            self.params
+                .to_string()
+                .lines()
+                .map(|l| format!("\t{}", l))
+                .collect::<Vec<_>>()
+                .join("\r\n")
+        )?;
+        write!(f, "}}")
+    }
+}
+
 #[derive(Debug)]
 pub struct MetaEvolve {
     pop: Vec<MetaEntity>,
@@ -108,15 +126,13 @@ impl MetaEvolve {
                 }
             }
 
-            println!("Sorting generation {}", _c + 1);
-
             new_pop.sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
             self.pop = new_pop;
 
             println!(
-                "Sorted generation {}! Best fitness: {}",
+                "Sorted generation {}! Best Indiviual: {}",
                 _c + 1,
-                self.best_fitness()
+                self.best_individual()
             );
 
             self.total_iterations += 1;
