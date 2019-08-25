@@ -94,8 +94,8 @@ impl Evolve {
             }
 
             // simplify all of the new population
-            for i in 0..new_pop.len() {
-                new_pop[i] = new_pop[i].simplify();
+            for tree in &mut new_pop {
+                *tree = tree.simplify();
             }
             new_pop.sort_by_cached_key(|e| OrderedFloat(e.fitness(&self.data[..])));
 
@@ -133,7 +133,7 @@ impl Evolve {
 
 impl Evolve {
     pub fn new(data: Vec<[float; 2]>, params: Option<EvolutionParams>) -> Self {
-        let params = params.unwrap_or_else(|| EvolutionParams::default());
+        let params = params.unwrap_or_else(EvolutionParams::default);
         let mut rng = rand::thread_rng();
         let mut pop = vec![
             {

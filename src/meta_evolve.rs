@@ -4,7 +4,7 @@ use rand::prelude::*;
 use rayon::prelude::*;
 use std::cell::RefCell;
 
-static FUNCTIONS: &'static [fn(float) -> float; 3] = &[
+static FUNCTIONS: &[fn(float) -> float; 3] = &[
     |x| 2.0 * x * x - 3.0 * x * x * x,
     |x| x.sin() + 1.0,
     |x| (3.0 as float).powf(x),
@@ -57,7 +57,7 @@ impl MetaEntity {
             .into_par_iter()
             .map(|f| {
                 let data: Vec<[float; 2]> = (-5..=5).map(|i| [i as float, f(i as float)]).collect();
-                let mut e = Evolve::new(data.clone(), Some(params.clone()));
+                let mut e = Evolve::new(data, Some(params.clone()));
                 e.step(50_000);
                 e.best_fitness() * (10_000.0) + (e.iters_to_best() as float)
             })
@@ -93,14 +93,16 @@ pub struct MetaEvolve {
     total_iterations: usize,
 }
 
-impl MetaEvolve {
-    pub fn new() -> Self {
+impl Default for MetaEvolve {
+    fn default() -> Self {
         Self {
             pop: (0..30).map(|_| MetaEntity::new_random()).collect(),
             total_iterations: 0,
         }
     }
+}
 
+impl MetaEvolve {
     pub fn step(&mut self, iterations: usize) {
         let mut rng = rand::thread_rng();
 

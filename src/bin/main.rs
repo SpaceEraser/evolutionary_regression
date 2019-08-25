@@ -8,7 +8,7 @@ fn main() {
         .build_global()
         .unwrap();
 
-    let mut m = MetaEvolve::new();
+    let mut m = MetaEvolve::default();
     m.step(100);
     dbg!(m.best_individual());
 }

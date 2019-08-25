@@ -19,7 +19,7 @@ pub enum ExpNodeOp {
 }
 
 impl ExpNodeOp {
-    pub fn is_const(&self) -> bool {
+    pub fn is_const(self) -> bool {
         use ExpNodeOp::*;
         if let Const(_) = self {
             true
@@ -28,22 +28,21 @@ impl ExpNodeOp {
         }
     }
 
-    pub fn is_nullary(&self) -> bool {
+    pub fn is_nullary(self) -> bool {
         use ExpNodeOp::*;
-        *self == Var || self.is_const()
+        self == Var || self.is_const()
     }
 
-    pub fn is_unary(&self) -> bool {
+    pub fn is_unary(self) -> bool {
         use ExpNodeOp::*;
-        *self == Sin
+        self == Sin
     }
 
-    pub fn is_binary(&self) -> bool {
+    pub fn is_binary(self) -> bool {
         use ExpNodeOp::*;
         [Add, Mul, Exp, Log]
             .iter()
-            .position(|e| e == self)
-            .is_some()
+            .any(|&e| e == self)
     }
 }
 
@@ -63,7 +62,7 @@ impl ExpNode {
             size: a.size() + b.size() + 1,
             depth: a.depth().max(b.depth()) + 1,
             children: vec![a, b],
-            op: op,
+            op,
         }
     }
 
@@ -74,7 +73,7 @@ impl ExpNode {
             size: a.size() + 1,
             depth: a.depth() + 1,
             children: vec![a],
-            op: op,
+            op,
         }
     }
 
@@ -85,7 +84,7 @@ impl ExpNode {
             size: 1,
             depth: 1,
             children: Vec::new(),
-            op: op,
+            op,
         }
     }
 
@@ -281,7 +280,7 @@ impl std::fmt::Display for ExpNode {
 pub fn random_expression(mut size: u32, params: &EvolutionParams) -> ExpNode {
     size = size.min(SIZE_LIMIT);
 
-    static BINARY_OPTS: &'static [fn(u32, &EvolutionParams) -> ExpNode; 4] = &[
+    static BINARY_OPTS: &[fn(u32, &EvolutionParams) -> ExpNode; 4] = &[
         |s, p| {
             let d = thread_rng().gen_range(2, s);
             ExpNode::new_binary(
@@ -315,9 +314,9 @@ pub fn random_expression(mut size: u32, params: &EvolutionParams) -> ExpNode {
             )
         },
     ];
-    static UNARY_OPTS: &'static [fn(u32, &EvolutionParams) -> ExpNode; 1] =
+    static UNARY_OPTS: &[fn(u32, &EvolutionParams) -> ExpNode; 1] =
         &[|s, p| ExpNode::new_unary(ExpNodeOp::Sin, random_expression(s - 1, p))];
-    static NULLARY_OPTS: &'static [fn(u32, &EvolutionParams) -> ExpNode; 2] = &[
+    static NULLARY_OPTS: &[fn(u32, &EvolutionParams) -> ExpNode; 2] = &[
         |_, _| ExpNode::new_nullary(ExpNodeOp::Var),
         |_, p| {
             ExpNode::new_nullary(ExpNodeOp::Const(
