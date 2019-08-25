@@ -40,9 +40,7 @@ impl ExpNodeOp {
 
     pub fn is_binary(self) -> bool {
         use ExpNodeOp::*;
-        [Add, Mul, Exp, Log]
-            .iter()
-            .any(|&e| e == self)
+        [Add, Mul, Exp, Log].iter().any(|&e| e == self)
     }
 }
 
@@ -198,10 +196,10 @@ impl ExpNode {
 
         if rng.gen::<float>() < params.mutate_replace_rate.powf(-(self.size() as float)) {
             // TODO: limit this somehow
-            let size = Geometric::new(1.0 / (self.size() as f64 + 1.0))
+            let size = Geometric::new(1.0 / (f64::from(self.size()) + 1.0))
                 .unwrap()
                 .sample(&mut rng)
-                .min((SIZE_LIMIT - self.size() + 1) as _);
+                .min(f64::from(SIZE_LIMIT - self.size() + 1));
 
             random_expression(size as _, params)
         } else {

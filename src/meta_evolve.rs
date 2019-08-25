@@ -9,6 +9,8 @@ static FUNCTIONS: &[fn(float) -> float; 3] = &[
     |x| x.sin() + 1.0,
     |x| (3.0 as float).powf(x),
 ];
+const RUNS_PER_FUNCTION: usize = 4;
+const META_POPULATION_NUM: usize = 30;
 
 #[derive(PartialEq, Clone, PartialOrd, Debug)]
 pub struct MetaEntity {
@@ -52,7 +54,7 @@ impl MetaEntity {
         let params = &self.params;
         let fitness = FUNCTIONS
             .iter()
-            .flat_map(|f| (0..3).map(move |_| f))
+            .flat_map(|f| (0 .. RUNS_PER_FUNCTION).map(move |_| f))
             .collect::<Vec<_>>()
             .into_par_iter()
             .map(|f| {
@@ -62,7 +64,7 @@ impl MetaEntity {
                 e.best_fitness() * (10_000.0) + (e.iters_to_best() as float)
             })
             .sum::<float>();
-        let fitness = fitness / (FUNCTIONS.len() * 3) as float;
+        let fitness = fitness / (FUNCTIONS.len() * RUNS_PER_FUNCTION) as float;
 
         *self.fitness.borrow_mut() = Some(fitness);
         fitness
@@ -96,7 +98,7 @@ pub struct MetaEvolve {
 impl Default for MetaEvolve {
     fn default() -> Self {
         Self {
-            pop: (0..30).map(|_| MetaEntity::new_random()).collect(),
+            pop: (0 .. META_POPULATION_NUM).map(|_| MetaEntity::new_random()).collect(),
             total_iterations: 0,
         }
     }

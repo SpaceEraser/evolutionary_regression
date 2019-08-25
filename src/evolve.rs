@@ -81,7 +81,7 @@ impl Evolve {
                     if rng.gen::<float>()
                         < (self.params.random_expression_insert_rate as float).powf(-(i as float))
                     {
-                        let size = Geometric::new(self.params.new_random_expression_prob as _)
+                        let size = Geometric::new(f64::from(self.params.new_random_expression_prob))
                             .unwrap()
                             .sample(&mut rng);
 
@@ -135,16 +135,15 @@ impl Evolve {
     pub fn new(data: Vec<[float; 2]>, params: Option<EvolutionParams>) -> Self {
         let params = params.unwrap_or_else(EvolutionParams::default);
         let mut rng = rand::thread_rng();
-        let mut pop = vec![
-            {
-                let size = Geometric::new(params.new_random_expression_prob as _)
+        let mut pop: Vec<_> = (0..(params.population_num.round() as usize))
+            .map(|_| {
+                let size = Geometric::new(f64::from(params.new_random_expression_prob))
                     .unwrap()
                     .sample(&mut rng);
 
                 ExpTree::new_random(size as _, &params).simplify()
-            };
-            params.population_num.round() as _
-        ];
+            })
+            .collect();
         pop.sort_by_cached_key(|e| OrderedFloat(e.fitness(&data[..])));
 
         Self {

@@ -83,7 +83,7 @@ impl EvolutionParams {
 
         Self {
             population_num: {
-                let o = Normal::new(0.0, self.population_num as _)
+                let o = Normal::new(0.0, f64::from(self.population_num))
                     .unwrap()
                     .sample(&mut rng) as float;
                 (self.population_num + o).clamp(1.0, MAX_POPULATION_NUM)
