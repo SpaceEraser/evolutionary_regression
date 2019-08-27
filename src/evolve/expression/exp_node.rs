@@ -194,12 +194,13 @@ impl ExpNode {
     pub fn mutate(&self, tree: &ExpTree, params: &EvolutionParams) -> Self {
         let mut rng = rand::thread_rng();
 
-        if rng.gen::<float>() < params.mutate_replace_rate.powf(-(self.size() as float)) {
+        if tree.size() < SIZE_LIMIT
+            && rng.gen::<float>() < params.mutate_replace_rate.powf(-(self.size() as float))
+        {
             let size = Geometric::new(1.0 / (f64::from(self.size()) + 1.0))
                 .unwrap()
                 .sample(&mut rng)
-                .min(f64::from(SIZE_LIMIT - self.size()))
-                .max(1.0);
+                .min(f64::from(SIZE_LIMIT - self.size()));
 
             random_expression(size as _, params)
         } else {

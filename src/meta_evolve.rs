@@ -8,7 +8,7 @@ static FUNCTIONS: &[fn(float) -> float; 4] = &[
     |x| 2.0 * x * x - 3.0 * x * x * x,
     |x| x.cos() + 1.0,
     |x| (3.0 as float).powf(x),
-    |x| x*x - x - 1.0,
+    |x| x * x - x - 1.0,
 ];
 const RUNS_PER_FUNCTION: usize = 3;
 const META_POPULATION_NUM: usize = 30;
