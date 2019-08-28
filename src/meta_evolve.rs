@@ -1,6 +1,5 @@
 use crate::evolve::{float, EvolutionParams, Evolve};
 use ordered_float::OrderedFloat;
-use parking_lot::RwLock;
 use rand::prelude::*;
 use rayon::prelude::*;
 
@@ -46,6 +45,10 @@ impl MetaEntity {
 
     pub fn fitness(&self) -> float {
         self.fitness
+    }
+
+    pub fn params(&self) -> &EvolutionParams {
+        &self.params
     }
 
     fn calculate_fitness(params: &EvolutionParams) -> float {
@@ -103,45 +106,37 @@ impl Default for MetaEvolve {
 
 impl MetaEvolve {
     pub fn step(&mut self, iterations: usize) {
+        let mut rng = rand::thread_rng();
+
         for c in 0..iterations {
-            let pop = &mut self.pop;
-
             let time = chrono::Duration::span(|| {
-                let new_pop = RwLock::new(Vec::with_capacity(pop.len()));
+                let mut new_params = Vec::with_capacity(self.pop.len());
 
-                rayon::scope(|s| {
-                    let mut rng = rand::thread_rng();
+                new_params.push(self.pop[0].params().clone());
 
-                    new_pop.write().push(pop[0].clone());
+                for i in 0..(self.pop.len() / 2) {
+                    if rng.gen::<float>() < (self.pop.len() - i) as float / self.pop.len() as float
+                    {
+                        new_params.push(self.pop[i].params().mutate());
+                    }
+                }
 
-                    for i in 0..(pop.len() / 2) {
-                        if rng.gen::<float>() < (pop.len() - i) as float / pop.len() as float {
-                            let new_pop = &new_pop;
-                            let pop = &pop;
-                            s.spawn(move |_| {
-                                new_pop.write().push(pop[i].mutate());
-                            });
-                        }
+                while new_params.len() < self.pop.len() {
+                    let mut parents = Vec::with_capacity(2);
+                    for _ in 0..2 {
+                        parents.push(self.pop.choose(&mut rng).unwrap().params());
                     }
 
-                    while new_pop.read().len() < pop.len() {
-                        s.spawn(|_| {
-                            let mut parents = Vec::new();
-                            for _ in 0..2 {
-                                parents.push(pop.choose(&mut thread_rng()).unwrap());
-                            }
-
-                            if parents.len() > 1 {
-                                new_pop.write().push(MetaEntity::crossover(&parents));
-                            }
-                        });
+                    if parents.len() > 1 {
+                        new_params.push(EvolutionParams::crossover(&parents));
                     }
-                    new_pop
-                        .write()
-                        .sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
-                });
+                }
 
-                *pop = new_pop.into_inner();
+                self.pop = new_params
+                    .into_par_iter()
+                    .map(|p| MetaEntity::from_params(p))
+                    .collect();
+                self.pop.sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
             });
 
             println!(
