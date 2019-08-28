@@ -141,14 +141,16 @@ impl MetaEvolve {
                 }
             }
 
-            new_pop.par_iter().for_each(|e| e.calculate_fitness());
-
-            new_pop.sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
-            self.pop = new_pop;
+            let time = chrono::Duration::span(|| {
+                new_pop.par_iter().for_each(|e| e.calculate_fitness());
+                new_pop.sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
+                self.pop = new_pop;
+            });
 
             println!(
-                "Sorted generation {}! Best Indiviual: {}",
+                "Sorted generation {} in {}s! Best Indiviual: {}",
                 c + 1,
+                time,
                 self.best_individual()
             );
 
