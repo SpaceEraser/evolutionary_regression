@@ -112,8 +112,6 @@ impl MetaEvolve {
             let time = chrono::Duration::span(|| {
                 let mut new_params = Vec::with_capacity(self.pop.len());
 
-                new_params.push(self.pop[0].params().clone());
-
                 for i in 0..(self.pop.len() / 2) {
                     if rng.gen::<float>() < (self.pop.len() - i) as float / self.pop.len() as float
                     {
@@ -121,7 +119,7 @@ impl MetaEvolve {
                     }
                 }
 
-                while new_params.len() < self.pop.len() {
+                while new_params.len() < self.pop.len() - 1 {
                     let mut parents = Vec::with_capacity(2);
                     for _ in 0..2 {
                         parents.push(self.pop.choose(&mut rng).unwrap().params());
@@ -132,15 +130,20 @@ impl MetaEvolve {
                     }
                 }
 
+                let best = self.best_individual().clone();
+
                 self.pop = new_params
                     .into_par_iter()
                     .map(|p| MetaEntity::from_params(p))
                     .collect();
+
+                self.pop.push(best);
+
                 self.pop.sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
             });
 
             println!(
-                "Built generation {} in {}s! Best Indiviual: {}",
+                "Built generation {} in {}! Best Indiviual: {}",
                 c + 1,
                 time,
                 self.best_individual()
