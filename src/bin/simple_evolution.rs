@@ -1,5 +1,5 @@
 use evolutionary_regression::evolve::*;
-use rayon::prelude::*;
+// use rayon::prelude::*;
 
 fn main() {
     let data: Vec<[float; 2]> = (-5..=5)

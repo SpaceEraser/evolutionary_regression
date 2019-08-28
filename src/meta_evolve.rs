@@ -10,41 +10,45 @@ static FUNCTIONS: &[fn(float) -> float; 4] = &[
     |x| (3.0 as float).powf(x),
     |x| x * x - x - 1.0,
 ];
-const RUNS_PER_FUNCTION: usize = 3;
+const RUNS_PER_FUNCTION: usize = 4;
 const META_POPULATION_NUM: usize = 30;
 
-#[derive(Debug)]
+#[derive(Clone, PartialEq, PartialOrd, Debug)]
 pub struct MetaEntity {
     params: EvolutionParams,
-    fitness: RwLock<Option<float>>,
+    fitness: float,
 }
 
 impl MetaEntity {
+    /// will cause a slow calculation to take place to calculate fitness
+    pub fn from_params(params: EvolutionParams) -> Self {
+        let fitness = Self::calculate_fitness(&params);
+
+        Self { params, fitness }
+    }
+
+    /// will cause a slow calculation to take place to calculate fitness
     pub fn new_random() -> Self {
-        Self {
-            params: EvolutionParams::new_random(),
-            fitness: RwLock::new(None),
-        }
+        Self::from_params(EvolutionParams::new_random())
     }
 
+    /// will cause a slow calculation to take place to calculate fitness
     pub fn mutate(&self) -> Self {
-        Self {
-            params: self.params.mutate(),
-            fitness: RwLock::new(None),
-        }
+        Self::from_params(self.params.mutate())
     }
 
+    /// will cause a slow calculation to take place to calculate fitness
     pub fn crossover(entities: &[&Self]) -> Self {
-        MetaEntity {
-            params: EvolutionParams::crossover(
-                &entities.iter().map(|me| &me.params).collect::<Vec<_>>(),
-            ),
-            fitness: RwLock::new(None),
-        }
+        Self::from_params(EvolutionParams::crossover(
+            &entities.iter().map(|me| &me.params).collect::<Vec<_>>(),
+        ))
     }
 
-    pub fn calculate_fitness(&self) {
-        let params = &self.params;
+    pub fn fitness(&self) -> float {
+        self.fitness
+    }
+
+    fn calculate_fitness(params: &EvolutionParams) -> float {
         let fitness = FUNCTIONS
             .iter()
             .flat_map(|f| (0..RUNS_PER_FUNCTION).map(move |_| f))
@@ -55,28 +59,8 @@ impl MetaEntity {
                 e.best_fitness() * (10_000.0) + (e.iters_to_best() as float)
             })
             .sum::<float>();
-        let fitness = fitness / (FUNCTIONS.len() * RUNS_PER_FUNCTION) as float;
 
-        *self.fitness.write() = Some(fitness);
-    }
-
-    pub fn fitness(&self) -> float {
-        if let Some(fitness) = *self.fitness.read() {
-            return fitness;
-        }
-
-        self.calculate_fitness();
-
-        (*self.fitness.read()).unwrap()
-    }
-}
-
-impl Clone for MetaEntity {
-    fn clone(&self) -> Self {
-        Self {
-            params: self.params.clone(),
-            fitness: RwLock::new(self.fitness.read().clone()),
-        }
+        fitness / (FUNCTIONS.len() * RUNS_PER_FUNCTION) as float
     }
 }
 
@@ -109,6 +93,7 @@ impl Default for MetaEvolve {
     fn default() -> Self {
         Self {
             pop: (0..META_POPULATION_NUM)
+                .into_par_iter()
                 .map(|_| MetaEntity::new_random())
                 .collect(),
             total_iterations: 0,
@@ -118,38 +103,49 @@ impl Default for MetaEvolve {
 
 impl MetaEvolve {
     pub fn step(&mut self, iterations: usize) {
-        let mut rng = rand::thread_rng();
-
         for c in 0..iterations {
-            let mut new_pop = Vec::with_capacity(self.pop.len());
-
-            new_pop.push(self.pop[0].clone());
-
-            for i in 0..self.pop.len() / 2 {
-                if rng.gen::<float>() < (self.pop.len() - i) as float / self.pop.len() as float {
-                    new_pop.push(self.pop[i].mutate());
-                }
-            }
-
-            while new_pop.len() < self.pop.len() {
-                let mut parents = Vec::new();
-                for _ in 0..2 {
-                    parents.push(self.pop.choose(&mut rng).unwrap());
-                }
-
-                if parents.len() > 1 {
-                    new_pop.push(MetaEntity::crossover(&parents[..]));
-                }
-            }
+            let pop = &mut self.pop;
 
             let time = chrono::Duration::span(|| {
-                new_pop.par_iter().for_each(|e| e.calculate_fitness());
-                new_pop.sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
-                self.pop = new_pop;
+                let new_pop = RwLock::new(Vec::with_capacity(pop.len()));
+
+                rayon::scope(|s| {
+                    let mut rng = rand::thread_rng();
+
+                    new_pop.write().push(pop[0].clone());
+
+                    for i in 0..(pop.len() / 2) {
+                        if rng.gen::<float>() < (pop.len() - i) as float / pop.len() as float {
+                            let new_pop = &new_pop;
+                            let pop = &pop;
+                            s.spawn(move |_| {
+                                new_pop.write().push(pop[i].mutate());
+                            });
+                        }
+                    }
+
+                    while new_pop.read().len() < pop.len() {
+                        s.spawn(|_| {
+                            let mut parents = Vec::new();
+                            for _ in 0..2 {
+                                parents.push(pop.choose(&mut thread_rng()).unwrap());
+                            }
+
+                            if parents.len() > 1 {
+                                new_pop.write().push(MetaEntity::crossover(&parents));
+                            }
+                        });
+                    }
+                    new_pop
+                        .write()
+                        .sort_unstable_by_key(|e| OrderedFloat(e.fitness()));
+                });
+
+                *pop = new_pop.into_inner();
             });
 
             println!(
-                "Sorted generation {} in {}s! Best Indiviual: {}",
+                "Built generation {} in {}s! Best Indiviual: {}",
                 c + 1,
                 time,
                 self.best_individual()
