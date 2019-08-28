@@ -1,8 +1,8 @@
 use crate::evolve::{float, EvolutionParams, Evolve};
 use ordered_float::OrderedFloat;
+use parking_lot::RwLock;
 use rand::prelude::*;
 use rayon::prelude::*;
-use parking_lot::RwLock;
 
 static FUNCTIONS: &[fn(float) -> float; 4] = &[
     |x| 2.0 * x * x - 3.0 * x * x * x,
@@ -66,7 +66,7 @@ impl MetaEntity {
         }
 
         self.calculate_fitness();
-        
+
         (*self.fitness.read()).unwrap()
     }
 }
@@ -92,7 +92,8 @@ impl std::fmt::Display for MetaEntity {
                 .lines()
                 .map(|l| format!("\t{}", l))
                 .collect::<Vec<_>>()
-                .join("\r\n").trim()
+                .join("\r\n")
+                .trim()
         )?;
         write!(f, "}}")
     }

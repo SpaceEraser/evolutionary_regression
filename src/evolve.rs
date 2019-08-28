@@ -195,7 +195,17 @@ impl std::fmt::Display for Evolve {
         )?;
         writeln!(f, "\tbest expression fitness: {}", self.best_fitness())?;
         writeln!(f, "\tbest expression:  {}", self.best_individual())?;
-        writeln!(f, "\tparams: {}", self.params)?;
+        writeln!(
+            f,
+            "\tparams: {}",
+            self.params
+                .to_string()
+                .lines()
+                .map(|l| format!("\t{}", l))
+                .collect::<Vec<_>>()
+                .join("\r\n")
+                .trim()
+        )?;
         write!(f, "}}")
     }
 }
