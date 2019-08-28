@@ -75,7 +75,7 @@ impl Clone for MetaEntity {
     fn clone(&self) -> Self {
         Self {
             params: self.params.clone(),
-            fitness: RwLock::new(None),
+            fitness: RwLock::new(self.fitness.read().clone()),
         }
     }
 }
