@@ -44,12 +44,7 @@ impl Evolve {
                 .map(|e| (e.size() as usize) * std::mem::size_of_val(e))
                 .sum::<usize>();
             if pop_size > 1_000_000 {
-                println!(
-                    "Huge population size detected: {}. Max size is {}. Max depth is {}",
-                    pop_size,
-                    self.pop.iter().map(|e| e.size()).max().unwrap(),
-                    self.pop.iter().map(|e| e.depth()).max().unwrap(),
-                );
+                println!("Huge population size detected: {}", self);
             }
             let mut new_pop = Vec::with_capacity(self.pop.len());
 
@@ -168,11 +163,11 @@ impl Evolve {
 impl std::fmt::Display for Evolve {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         writeln!(f, "{{")?;
-        writeln!(f, "\tIteration {}", self.total_iterations)?;
-        writeln!(f, "\tPopulation Size: {}", self.pop.len())?;
+        writeln!(f, "\ttotal_iterations {}", self.total_iterations)?;
+        writeln!(f, "\tpopulation size: {}", self.pop.len())?;
         writeln!(
             f,
-            "\tPopulation Size: {} bytes",
+            "\tpopulation size (in bytes): {}",
             self.pop
                 .iter()
                 .map(|e| (e.size() as usize) * std::mem::size_of_val(e))
@@ -180,18 +175,27 @@ impl std::fmt::Display for Evolve {
         )?;
         writeln!(
             f,
-            "\tMax Size: {}",
+            "\tmax expression size: {}",
             self.pop.iter().map(|e| e.size()).max().unwrap()
         )?;
         writeln!(
             f,
-            "\tMax Depth: {}",
+            "\tmax expression depth: {}",
             self.pop.iter().map(|e| e.depth()).max().unwrap()
         )?;
-        writeln!(f, "\tBest Size: {}", self.best_individual().size())?;
-        writeln!(f, "\tBest Depth: {}", self.best_individual().depth())?;
-        writeln!(f, "\tBest Fitness: {}", self.best_fitness())?;
-        writeln!(f, "\tBest Individual:  {}", self.best_individual())?;
+        writeln!(
+            f,
+            "\tbest expression size: {}",
+            self.best_individual().size()
+        )?;
+        writeln!(
+            f,
+            "\tbest expression depth: {}",
+            self.best_individual().depth()
+        )?;
+        writeln!(f, "\tbest expression fitness: {}", self.best_fitness())?;
+        writeln!(f, "\tbest expression:  {}", self.best_individual())?;
+        writeln!(f, "\tparams: {}", self.params)?;
         write!(f, "}}")
     }
 }
