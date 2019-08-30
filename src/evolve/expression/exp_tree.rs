@@ -19,15 +19,28 @@ impl ExpTree {
     }
 
     pub fn eval(&self, x: float) -> float {
-        self.root.eval(x)
+        let r = self.root.eval(x);
+
+        if r.is_finite() {
+            r
+        } else {
+            0.0
+        }
     }
 
     pub fn mutate(&self, params: &EvolutionParams) -> Self {
         Self::new(self.root.mutate(self, params))
     }
 
+    /// fitness relative to some given data
     pub fn fitness(&self, data: &[[float; 2]]) -> float {
-        self.root.fitness(data)
+        let accuracy: float = data
+            .iter()
+            .map(|&[x, y]| self.eval(x) - y)
+            .map(|y| y.abs())
+            .sum();
+
+        accuracy + (self.size() as float)
     }
 
     pub fn simplify(&self) -> Self {

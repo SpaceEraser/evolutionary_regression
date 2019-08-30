@@ -97,7 +97,7 @@ impl ExpNode {
     pub fn eval(&self, x: float) -> float {
         use ExpNodeOp::*;
 
-        let r = match self.op {
+        match self.op {
             Add => self.children().iter().map(|n| n.eval(x)).sum(),
             Mul => self
                 .children()
@@ -109,12 +109,6 @@ impl ExpNode {
             Sin => self.children[0].eval(x).sin(),
             Var => x,
             Const(c) => c,
-        };
-
-        if r.is_finite() {
-            r
-        } else {
-            0.0
         }
     }
 
@@ -247,17 +241,6 @@ impl ExpNode {
                 ExpNode::new_nullary(Const(if relative_eq!(c, r) { r } else { c }))
             }
         }
-    }
-
-    /// fitness relative to some given data
-    pub fn fitness(&self, data: &[[float; 2]]) -> float {
-        let accuracy: float = data
-            .iter()
-            .map(|&[x, y]| self.eval(x) - y)
-            .map(|y| y.abs())
-            .sum();
-
-        accuracy + (self.size() as float)
     }
 }
 
