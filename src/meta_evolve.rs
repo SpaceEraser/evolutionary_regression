@@ -56,7 +56,12 @@ impl MetaEntity {
             .iter()
             .flat_map(|f| (0..RUNS_PER_FUNCTION).map(move |_| f))
             .map(|f| {
-                let data: Vec<[float; 2]> = (-5..=5).map(|i| [i as float, f(i as float)]).collect();
+                let data: Vec<[float; 2]> = (-5..=5)
+                    .map(|i| {
+                        let y = f(i as float);
+                        [i as float, if y.is_finite() { y } else { 0.0 }]
+                    })
+                    .collect();
                 let mut e = Evolve::new(data, Some(params.clone()));
                 e.step(50_000);
                 e.best_fitness() * (10_000.0) + (e.iters_to_best() as float)
