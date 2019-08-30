@@ -182,7 +182,7 @@ impl ExpNode {
                             )
                         })
                         .sample(&mut rng) as float;
-                    ExpNode::new_nullary(Const(v + r))
+                    ExpNode::new_nullary(Const(c + r))
                 } else {
                     ExpNode::new_nullary(Const(c))
                 }

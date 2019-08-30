@@ -86,7 +86,9 @@ impl EvolutionParams {
             .into_iter()
             .map(|&v| {
                 if rng.gen_range(0, Self::num_params()) == 0 {
-                    let o = Normal::new(0.0, f64::from(v)).unwrap().sample(&mut rng) as float;
+                    let o = Normal::new(0.0, f64::from(v.abs().max(0.0001)))
+                        .unwrap()
+                        .sample(&mut rng) as float;
                     v + o
                 } else {
                     v
