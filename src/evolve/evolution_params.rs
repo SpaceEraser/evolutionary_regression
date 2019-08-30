@@ -3,7 +3,7 @@ use rand::distributions::OpenClosed01;
 use rand::prelude::*;
 use statrs::distribution::{Exponential, Geometric, Normal};
 
-const MAX_POPULATION_NUM: float = 100.0;
+const MAX_POPULATION_NUM: float = 50.0;
 
 #[derive(PartialEq, Clone, PartialOrd, Debug)]
 pub struct EvolutionParams {
@@ -81,49 +81,30 @@ impl EvolutionParams {
     pub fn mutate(&self) -> Self {
         let mut rng = rand::thread_rng();
 
+        let res: Vec<_> = self
+            .as_array()
+            .into_iter()
+            .map(|&v| {
+                if rng.gen_range(0, Self::num_params()) == 0 {
+                    let o = Normal::new(0.0, f64::from(v)).unwrap().sample(&mut rng) as float;
+                    v + o
+                } else {
+                    v
+                }
+            })
+            .collect();
+
         Self {
-            population_num: {
-                let o = Normal::new(0.0, f64::from(self.population_num))
-                    .unwrap()
-                    .sample(&mut rng) as float;
-                (self.population_num + o).clamp(1.0, MAX_POPULATION_NUM)
-            },
-            new_const_mean: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                self.new_const_mean + o
-            },
-            new_const_std: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.new_const_std + o).max(0.0001)
-            },
-            new_random_expression_prob: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.new_random_expression_prob + o).clamp(0.0001, 1.0)
-            },
-            repeated_mutation_rate: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.repeated_mutation_rate + o).max(1.0001)
-            },
-            random_expression_insert_rate: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.random_expression_insert_rate + o).max(1.0001)
-            },
-            mutate_replace_rate: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.mutate_replace_rate + o).max(1.0001)
-            },
-            const_mutation_prob: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.const_mutation_prob + o).clamp(0.0001, 1.0)
-            },
-            const_jitter_factor: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.const_jitter_factor + o).max(1.0)
-            },
-            binary_switch_prob: {
-                let o = Normal::new(0.0, 1.0).unwrap().sample(&mut rng) as float;
-                (self.binary_switch_prob + o).clamp(0.0, 1.0)
-            },
+            population_num: res[0].clamp(1.0, MAX_POPULATION_NUM),
+            new_const_mean: res[1],
+            new_const_std: res[2].max(0.0001),
+            new_random_expression_prob: res[3].clamp(0.0001, 1.0),
+            repeated_mutation_rate: res[4].max(1.0001),
+            random_expression_insert_rate: res[5].max(1.0001),
+            mutate_replace_rate: res[6].max(1.0001),
+            const_mutation_prob: res[7].clamp(0.0001, 1.0),
+            const_jitter_factor: res[8].max(1.0),
+            binary_switch_prob: res[9].clamp(0.0, 1.0),
         }
     }
 

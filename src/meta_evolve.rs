@@ -3,13 +3,13 @@ use ordered_float::OrderedFloat;
 use rand::prelude::*;
 use rayon::prelude::*;
 
-static FUNCTIONS: &[fn(float) -> float; 4] = &[
-    |x| 2.0 * x * x - 3.0 * x * x * x,
-    |x| x.cos() + 1.0,
-    |x| (3.0 as float).powf(x),
-    |x| x * x - x - 1.0,
+static FUNCTIONS: &[fn(float) -> float; 1] = &[
+    |x| 2.0 * x.powi(2) - 3.0 * x.powi(3) + 1.0 / (x + 1.0),
+    // |x| x.cos() + 1.0,
+    // |x| (3.0 as float).powf(x),
+    // |x| x * x - x - 1.0,
 ];
-const RUNS_PER_FUNCTION: usize = 4;
+const RUNS_PER_FUNCTION: usize = 10;
 const META_POPULATION_NUM: usize = 30;
 
 #[derive(Clone, PartialEq, PartialOrd, Debug)]
