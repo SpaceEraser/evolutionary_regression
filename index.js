@@ -1,4 +1,8 @@
-import("../pkg/evolutionary_regression.js").catch(console.error).then(module => {
+import("./pkg")
+.catch(console.error)
+.then(module => {
+    'use strict';
+
     // options
     window.plot_options = {
         target: '#plot',
@@ -87,8 +91,6 @@ import("../pkg/evolutionary_regression.js").catch(console.error).then(module => 
 
     // main
     $(() => {
-        'use strict';
-
         window.plot_or_sample((scope) => 0, 0);
 
         $('#preset_function').on('change', event => {
@@ -99,7 +101,6 @@ import("../pkg/evolutionary_regression.js").catch(console.error).then(module => 
         });
 
         let function_input_setup = event => {
-            
             let v = $(event.target).val();
             try {
                 window.clear_evolution();
@@ -112,12 +113,12 @@ import("../pkg/evolutionary_regression.js").catch(console.error).then(module => 
         };
 
         $('#function_input').on('change', function_input_setup);
-        $('#function_input').on('keyup', (event) => {
+        $('#function_input').on('keyup', event => {
             $('#preset_function').val('');
             function_input_setup(event);
         });
 
-        $('#go').on('click', event => {
+        $('#go').on('click', () => {
             let f = $('#function_input').val();
             if (f !== '') {
                 let samples = window.sample(f);
@@ -125,13 +126,13 @@ import("../pkg/evolutionary_regression.js").catch(console.error).then(module => 
                 let ys = samples.map(e => e[1]);
                 window.fitness_points = [];
 
-                window.evolution_instance = module.Evolve.from_xy(xs, ys);
+                window.evolution_instance = module.from_xy(xs, ys);
                 window.clear_evolution();
                 window.step_evolution(50000);
             }
         });
 
-        $('#stop').on('click', event => {
+        $('#stop').on('click', () => {
             window.clear_evolution();
         });
     });

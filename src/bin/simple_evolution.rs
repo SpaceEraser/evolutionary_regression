@@ -1,10 +1,11 @@
+use evolutionary_regression::float;
 use evolutionary_regression::evolve::*;
 // use rayon::prelude::*;
 
 fn main() {
     let data: Vec<[float; 2]> = (-5..=5)
-        // .map(|i| [i as float, (2 * i * i - 3 * i * i * i) as float])
-        .map(|i| [i as float, (i as float).cos() + 1.0])
+        .map(|i| [i as float, (2 * i * i - 3 * i * i * i) as float])
+        // .map(|i| [i as float, (i as float).cos() + 1.0])
         // .map(|i| [i as float, (3.0 as float).powi(i)])
         .collect();
 

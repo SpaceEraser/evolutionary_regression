@@ -2,12 +2,13 @@
 name = "evolutionary_regression"
 version = "0.1.0"
 authors = ["Bence Meszaros <bence.me@gmail.com>"]
-categories = ["wasm"]
 readme = "README.md"
 edition = "2018"
 default-run = "main"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+# disable wasm-opt due to bug: https://github.com/rustwasm/wasm-pack/issues/886
+[package.metadata.wasm-pack.profile.release]
+wasm-opt = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -21,33 +22,17 @@ ordered-float = "1.0.2"
 rand = { version="0.6.0", features=["wasm-bindgen"] }
 statrs = "0.11.0"
 approx = "0.3.2"
-downcast-rs = "1.0.4"
-rayon = "1.1.0"
-objekt = "0.1.2"
-
-# The `wasm-bindgen` crate provides the bare minimum functionality needed
-# to interact with JavaScript.
-wasm-bindgen = "0.2.45"
-# `wee_alloc` is a tiny allocator for wasm that is only ~1K in code size
-# compared to the default allocator's ~10K. However, it is slower than the default
-# allocator, so it's not enabled by default.
-wee_alloc = { version = "0.4.2", optional = true }
-# The `web-sys` crate allows you to interact with the various browser APIs,
-# like the DOM.
-web-sys = { version = "0.3.22", features = ["console"] }
 chrono = "0.4.7"
+rayon = "1.4.0"
+
+wasm-bindgen = "0.2.67"
+web-sys = { version = "0.3.22", features = ["console"] }
+console_error_panic_hook = "0.1.6"
 
 [profile.release]
-# opt-level = "z"
+opt-level = "z"
 lto = true
 codegen-units = 1
-
-# The `console_error_panic_hook` crate provides better debugging of panics by
-# logging them with `console.error`. This is great for development, but requires
-# all the `std::fmt` and `std::panicking` infrastructure, so it's only enabled
-# in debug mode.
-[target."cfg(debug_assertions)".dependencies]
-console_error_panic_hook = "0.1.5"
 
 # These crates are used for running unit tests.
 [dev-dependencies]

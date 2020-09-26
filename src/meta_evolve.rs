@@ -1,4 +1,5 @@
-use crate::evolve::{float, EvolutionParams, Evolve};
+use crate::float;
+use crate::evolve::{EvolutionParams, Evolve};
 use ordered_float::OrderedFloat;
 use rand::prelude::*;
 use rayon::prelude::*;

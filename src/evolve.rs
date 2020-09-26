@@ -1,15 +1,14 @@
 mod evolution_params;
 mod expression;
 
+use crate::float;
+
 pub use evolution_params::EvolutionParams;
 use expression::ExpTree;
 use ordered_float::OrderedFloat;
 use rand::prelude::*;
 use statrs::distribution::Geometric;
 use wasm_bindgen::prelude::*;
-
-#[allow(non_camel_case_types)]
-pub type float = f32;
 
 #[wasm_bindgen]
 #[derive(Debug, Clone)]

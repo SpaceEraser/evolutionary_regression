@@ -83,7 +83,7 @@ impl EvolutionParams {
 
         let res: Vec<_> = self
             .as_array()
-            .into_iter()
+            .iter()
             .map(|&v| {
                 if rng.gen_range(0, Self::num_params()) == 0 {
                     let o = Normal::new(0.0, f64::from(v.abs().max(0.0001)))
