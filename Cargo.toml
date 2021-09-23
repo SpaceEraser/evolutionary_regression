@@ -18,11 +18,11 @@ default-run = "main"
 ## default = ["wee_alloc"]
 
 [dependencies]
-rand = { version="0.7.3", features=["small_rng"]}
-oxigen = "2.2.2"
+rand = { version="0.8.4", features=["small_rng", "nightly", "simd_support"]}
 lexical = "5.2.2"
 triple_accel = "0.4.0"
 num-complex = "0.4.0"
+ordered-float = "2.7.0"
 
 #wasm-bindgen = "0.2.67"
 #web-sys = { version = "0.3.22", features = ["console"] }

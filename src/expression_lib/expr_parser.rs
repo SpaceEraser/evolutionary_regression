@@ -1,3 +1,5 @@
+use crate::Float;
+
 use num_complex::Complex32;
 
 pub static ALPHABET: &'static [u8] = &[
@@ -72,7 +74,7 @@ impl<'a> Tokenize for &'a [u8] {
     }
 }
 
-fn parse_num<T>(expr: T) -> Option<f32>
+fn parse_num<T>(expr: T) -> Option<Float>
 where
     T: AsRef<[u8]>,
 {
@@ -102,7 +104,7 @@ where
     return lexical::parse(buf).ok();
 }
 
-pub fn eval<T>(expr: T, x: f32) -> f32
+pub fn evaluate_expression<T>(expr: T, x: Float) -> Float
 where
     T: AsRef<[u8]>,
 {
@@ -151,7 +153,11 @@ where
         }
     }
 
-    return stack.into_iter().rfind(|n| !n.is_nan()).unwrap_or_default().re;
+    return stack
+        .into_iter()
+        .rfind(|n| !n.is_nan())
+        .unwrap_or_default()
+        .re;
 }
 
 #[cfg(test)]
